@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  steamId     String   @unique
+  displayName String
+  avatarUrl   String?
+  profileUrl  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  shelfEntries ShelfEntry[]
+  sessions     Session[]
+  buildLogs    BuildLog[]
+}
+
+// One row per game on the user's shelf
+model ShelfEntry {
+  id        String      @id @default(cuid())
+  userId    String
+  steamAppId Int
+  gameName  String
+  status    ShelfStatus @default(BACKLOG)
+  rating    Int?        // 1–5
+  review    String?
+  isPublic  Boolean     @default(false)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id])
+  sessions Session[]
+  builds   BuildLog[]
+
+  @@unique([userId, steamAppId])
+}
+
+enum ShelfStatus {
+  PLAYING
+  COMPLETED
+  ABANDONED
+  BACKLOG
+  REPLAYING
+}
+
+// One row per play session
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  shelfEntryId String
+  date         DateTime
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id])
+  shelfEntry ShelfEntry @relation(fields: [shelfEntryId], references: [id])
+  screenshots Screenshot[]
+}
+
+// Per-game build documentation
+model BuildLog {
+  id           String   @id @default(cuid())
+  userId       String
+  shelfEntryId String
+  title        String
+  content      String   // free text / rich text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id])
+  shelfEntry ShelfEntry @relation(fields: [shelfEntryId], references: [id])
+  screenshots Screenshot[]
+}
+
+// Screenshots stored in Cloudflare R2; we keep the URL + metadata here
+model Screenshot {
+  id          String   @id @default(cuid())
+  r2Key       String   @unique // key in the R2 bucket
+  url         String
+  sessionId   String?
+  buildLogId  String?
+  uploadedAt  DateTime @default(now())
+
+  session  Session?  @relation(fields: [sessionId], references: [id])
+  build    BuildLog? @relation(fields: [buildLogId], references: [id])
+}
