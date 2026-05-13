@@ -1,146 +1,328 @@
-// Server component — reads the ShelfEntry and its Sessions from Prisma,
-// then renders them alongside the client-side LogSessionForm.
-
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import LogSessionForm from "@/components/LogSessionForm";
+import RunManager from "@/components/RunManager";
+import type { RunProp, SessionProp, AchievementProp, ScreenshotProp } from "@/components/RunManager";
+import EditGamePanel from "@/components/EditGamePanel";
+import TagManager from "@/components/TagManager";
+import AddToListPanel from "@/components/AddToListPanel";
+import HideGameButton from "@/components/HideGameButton";
+import DeleteGameButton from "@/components/DeleteGameButton";
 
 const STATUS_DISPLAY: Record<string, string> = {
-  PLAYING: "Playing",
-  COMPLETED: "Completed",
-  ABANDONED: "Abandoned",
-  BACKLOG: "Backlog",
-  REPLAYING: "Replaying",
+  PLAYING:               "Playing",
+  COMPLETED:             "Completed",
+  ABANDONED:             "Abandoned",
+  BACKLOG:               "Untracked",
+  REPLAYING:             "Replaying",
+  UNTRACKED:             "Untracked",
+  WANT_TO_PLAY:          "Want to Play",
+  MULTIPLAYER:           "Active",
+  MULTIPLAYER_ACTIVE:    "Active",
+  MULTIPLAYER_ON_BREAK:  "On Break",
+  MULTIPLAYER_RETIRED:   "Retired",
 };
 
-const STATUS_COLORS: Record<string, string> = {
-  Playing: "bg-green-800 text-green-200",
-  Completed: "bg-blue-800 text-blue-200",
-  Abandoned: "bg-red-900 text-red-300",
-  Backlog: "bg-zinc-700 text-zinc-300",
-  Replaying: "bg-purple-800 text-purple-200",
+const STATUS_DOT: Record<string, string> = {
+  Playing:        "bg-emerald-500",
+  Completed:      "bg-sky-500",
+  Abandoned:      "bg-rose-500",
+  Replaying:      "bg-violet-500",
+  Untracked:      "bg-slate-400",
+  "Want to Play": "bg-amber-500",
+  Active:         "bg-blue-500",
+  "On Break":     "bg-amber-500",
+  Retired:        "bg-slate-600",
+};
+
+const STATUS_TEXT: Record<string, string> = {
+  Playing:        "text-emerald-400",
+  Completed:      "text-sky-400",
+  Abandoned:      "text-rose-400",
+  Replaying:      "text-violet-400",
+  Untracked:      "text-slate-400",
+  "Want to Play": "text-amber-400",
+  Active:         "text-blue-400",
+  "On Break":     "text-amber-400",
+  Retired:        "text-slate-500",
 };
 
 function formatDate(d: Date) {
-  return d.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  return d.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
 }
 
 type Params = { id: string };
 
 export default async function GameDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<Params>;
+  searchParams: Promise<{ from?: string }>;
 }) {
   const { id } = await params;
+  const { from } = await searchParams;
+  const backHref = from ? `/library?filter=${encodeURIComponent(from)}` : "/library";
 
   const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    redirect("/");
-  }
+  if (!session?.user) redirect("/");
 
   const steamId = (session.user as { steamId?: string }).steamId;
   if (!steamId) redirect("/");
 
-  // Fetch the shelf entry and verify it belongs to this user.
-  // Include sessions ordered newest-first for the session log.
   const entry = await prisma.shelfEntry.findUnique({
     where: { id },
     include: {
       user: { select: { steamId: true } },
-      sessions: { orderBy: { date: "desc" } },
+      sessions: { orderBy: [{ date: "desc" }, { createdAt: "desc" }] },
     },
   });
 
-  // 404 if the entry doesn't exist or belongs to a different user.
-  if (!entry || entry.user.steamId !== steamId) {
-    notFound();
+  if (!entry || entry.user.steamId !== steamId) notFound();
+
+  const dbUser = await prisma.user.findUnique({ where: { steamId } });
+
+  // Fetch playthroughs (raw SQL — Run model may not be in generated client yet)
+  const runsRaw = await prisma.$queryRaw<
+    { id: string; name: string; status: string; createdAt: Date }[]
+  >`
+    SELECT id, name, status, "createdAt" FROM "Run"
+    WHERE "shelfEntryId" = ${entry.id}
+    ORDER BY "createdAt" ASC
+  `;
+
+  // Fetch sessions with runId and music (raw SQL — new columns may not be in generated client yet)
+  const sessionsRaw = await prisma.$queryRaw<{
+    id: string; date: Date; durationMinutes: number | null;
+    autoDetected: boolean; notes: string | null; runId: string | null; music: string | null;
+  }[]>`
+    SELECT id, date, "durationMinutes", "autoDetected", notes, "runId", music
+    FROM "Session"
+    WHERE "shelfEntryId" = ${entry.id}
+    ORDER BY date DESC, "createdAt" DESC
+  `;
+
+  // Fetch screenshots for all sessions of this game, grouped by sessionId
+  const screenshotsRaw = await prisma.$queryRaw<{ id: string; url: string; sessionId: string }[]>`
+    SELECT s.id, s.url, s."sessionId"
+    FROM "Screenshot" s
+    INNER JOIN "Session" sess ON sess.id = s."sessionId"
+    WHERE sess."shelfEntryId" = ${entry.id}
+    ORDER BY s."uploadedAt" ASC
+  `;
+  const screenshotsBySession = new Map<string, ScreenshotProp[]>();
+  for (const s of screenshotsRaw) {
+    if (!screenshotsBySession.has(s.sessionId)) screenshotsBySession.set(s.sessionId, []);
+    screenshotsBySession.get(s.sessionId)!.push({ id: s.id, url: s.url });
   }
 
+  // Fetch achievements for this game, ordered by unlock time
+  const achievementsRaw = await prisma.$queryRaw<{
+    id: string; displayName: string; description: string | null; unlockedAt: Date;
+  }[]>`
+    SELECT id, "displayName", description, "unlockedAt"
+    FROM "Achievement"
+    WHERE "shelfEntryId" = ${entry.id}
+    ORDER BY "unlockedAt" ASC
+  `;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const listModel = (prisma as any).list as typeof prisma.list | undefined;
+  const userLists = await (
+    (dbUser && listModel)
+      ? listModel.findMany({
+          where: { userId: dbUser.id },
+          orderBy: { createdAt: "asc" },
+          include: {
+            _count: { select: { entries: true } },
+            entries: { where: { shelfEntryId: entry.id }, select: { shelfEntryId: true } },
+          },
+        }).catch(() => [])
+      : Promise.resolve([])
+  );
+
+  const listSummaries = userLists.map((l: { id: string; name: string; _count: { entries: number } }) => ({
+    id: l.id,
+    name: l.name,
+    entryCount: l._count.entries,
+  }));
+  const memberIds = userLists
+    .filter((l: { entries: { shelfEntryId: string }[] }) => l.entries.length > 0)
+    .map((l: { id: string }) => l.id);
+
+  const runs: RunProp[] = runsRaw.map((r) => ({
+    id: r.id,
+    name: r.name,
+    status: r.status,
+    createdAt: r.createdAt.toISOString(),
+  }));
+
+  const sessions: SessionProp[] = sessionsRaw.map((s) => ({
+    id: s.id,
+    date: formatDate(s.date),
+    rawDate: s.date.toISOString().slice(0, 10),
+    durationMinutes: s.durationMinutes ?? null,
+    notes: s.notes ?? null,
+    music: s.music ?? null,
+    autoDetected: s.autoDetected,
+    runId: s.runId ?? null,
+    screenshots: screenshotsBySession.get(s.id) ?? [],
+  }));
+
+  const achievements: AchievementProp[] = achievementsRaw.map((a) => ({
+    id: a.id,
+    displayName: a.displayName,
+    description: a.description ?? null,
+    unlockedDate: a.unlockedAt.toISOString().slice(0, 10),
+  }));
+
+  const entryTags    = (entry as { tags?: string[] }).tags      ?? [];
+  const entryGenres  = (entry as { genres?: string[] }).genres  ?? [];
+  const entryHidden  = (entry as { isHidden?: boolean }).isHidden ?? false;
+
   const statusDisplay = STATUS_DISPLAY[entry.status] ?? entry.status;
-  const statusColor = STATUS_COLORS[statusDisplay] ?? "bg-zinc-700 text-zinc-300";
-  const stars = entry.rating
-    ? "★".repeat(entry.rating) + "☆".repeat(5 - entry.rating)
-    : null;
-  const coverUrl = `https://cdn.cloudflare.steamstatic.com/steam/apps/${entry.steamAppId}/header.jpg`;
+  const dotClass  = STATUS_DOT[statusDisplay]  ?? "bg-slate-400";
+  const textClass = STATUS_TEXT[statusDisplay] ?? "text-slate-500";
+  // Priority: stored coverUrl (IGDB) → Steam CDN → null (shows placeholder)
+  const storedCover = (entry as { coverUrl?: string | null }).coverUrl ?? null;
+  const coverUrl = storedCover
+    ?? (entry.steamAppId ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${entry.steamAppId}/header.jpg` : null);
 
   return (
-    <div className="space-y-8">
-      {/* Back link */}
-      <Link
-        href="/"
-        className="inline-flex items-center gap-1 text-sm text-zinc-400 hover:text-white transition-colors"
-      >
-        ← My Shelf
-      </Link>
+    <div>
+      {/* ── Hero banner — blurred cover bleeds to plane edges ── */}
+      <div className="relative -mx-6 -mt-8 overflow-hidden mb-8">
+        {/* Blurred background art — only rendered when a cover is available */}
+        {coverUrl && (
+          <img
+            src={coverUrl}
+            alt=""
+            aria-hidden
+            className="absolute inset-0 w-full h-full object-cover scale-110 blur-2xl opacity-25 select-none"
+          />
+        )}
+        {/* Gradient fade to plane color at bottom */}
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/40 via-slate-800/70 to-[#1e293b]" />
 
-      {/* Game header */}
-      <div className="flex gap-6 items-start">
-        <img
-          src={coverUrl}
-          alt={entry.gameName}
-          className="w-48 rounded-lg object-cover flex-shrink-0 bg-zinc-800"
-          onError={undefined}
-        />
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-white">{entry.gameName}</h1>
-          <span
-            className={`inline-block rounded px-2 py-0.5 text-sm font-medium ${statusColor}`}
-          >
-            {statusDisplay}
-          </span>
-          {stars && (
-            <p className="text-yellow-400 text-lg tracking-tight">{stars}</p>
-          )}
-          {entry.review && (
-            <p className="text-zinc-300 text-sm max-w-prose">{entry.review}</p>
-          )}
+        {/* Content on top of hero */}
+        <div className="relative z-10 px-6 pt-6 pb-10">
+          <Link href={backHref} className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200 transition-colors">
+            ← My Library
+          </Link>
+
+          <div className="flex gap-5 items-end mt-6">
+            {/* Cover thumbnail — IGDB cover, Steam header, or initials placeholder */}
+            {coverUrl ? (
+              <img
+                src={coverUrl}
+                alt={entry.gameName}
+                className="w-36 rounded-lg object-cover flex-shrink-0 shadow-2xl ring-1 ring-white/10 bg-slate-700"
+              />
+            ) : (
+              <div className="w-36 aspect-[2/3] rounded-lg bg-zinc-800 flex-shrink-0 flex items-center justify-center shadow-2xl ring-1 ring-white/10">
+                <span className="text-4xl font-bold text-zinc-600 select-none">
+                  {entry.gameName.slice(0, 2).toUpperCase()}
+                </span>
+              </div>
+            )}
+
+            {/* Title + meta */}
+            <div className="flex-1 min-w-0 pb-1">
+              {entryGenres.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {entryGenres.map((g) => (
+                    <span key={g} className="rounded px-2 py-0.5 text-xs bg-black/30 text-slate-300 capitalize backdrop-blur-sm">
+                      {g}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <h1 className="text-3xl font-bold text-white leading-tight drop-shadow-lg">
+                {entry.gameName}
+              </h1>
+              <div className="flex items-center gap-2 mt-2">
+                <span className={`h-2 w-2 rounded-full flex-shrink-0 ${dotClass}`} />
+                <span className={`text-sm font-medium ${textClass}`}>{statusDisplay}</span>
+              </div>
+            </div>
+
+            <div className="flex-shrink-0 pb-1">
+              <HideGameButton entryId={entry.id} isHidden={entryHidden} />
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Session log */}
-      <section>
-        <h2 className="text-xl font-semibold text-white mb-4">Session Log</h2>
+      {/* Main two-column: journal (left) + details sidebar (right) */}
+      <div className="space-y-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
-        {entry.sessions.length === 0 ? (
-          <p className="text-sm text-zinc-500 mb-6">No sessions logged yet.</p>
-        ) : (
-          <ul className="space-y-3 mb-6">
-            {entry.sessions.map((s) => (
-              <li
-                key={s.id}
-                className="rounded-lg border border-zinc-800 bg-zinc-900 p-4"
-              >
-                <p className="text-sm font-medium text-zinc-300">
-                  {formatDate(s.date)}
-                </p>
-                {s.notes ? (
-                  <p className="mt-1 text-sm text-zinc-400 whitespace-pre-wrap">
-                    {s.notes}
-                  </p>
-                ) : (
-                  <p className="mt-1 text-xs text-zinc-600 italic">No notes</p>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {/* Log a new session */}
-        <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-5">
-          <h3 className="text-base font-semibold text-white mb-4">
-            Log a session
-          </h3>
-          <LogSessionForm shelfEntryId={entry.id} />
+        {/* ── Journal (2/3) ── */}
+        <div className="lg:col-span-2">
+          <RunManager
+            shelfEntryId={entry.id}
+            runs={runs}
+            sessions={sessions}
+            achievements={achievements}
+          />
         </div>
-      </section>
+
+        {/* ── Details sidebar (1/3) ── */}
+        <div className="space-y-5">
+          {/* Status / rating / notes */}
+          <section className="rounded-lg border border-slate-700 bg-slate-900 p-5">
+            <EditGamePanel
+              entryId={entry.id}
+              initialStatus={entry.status}
+              initialReview={entry.review ?? null}
+              initialRating={entry.rating}
+              initialIsMultiplayer={
+                ((entry as { isMultiplayer?: boolean }).isMultiplayer ?? false) ||
+                ["MULTIPLAYER","MULTIPLAYER_ACTIVE","MULTIPLAYER_ON_BREAK","MULTIPLAYER_RETIRED"].includes(entry.status)
+              }
+            />
+          </section>
+
+          {/* Tags */}
+          <section className="rounded-lg border border-slate-700 bg-slate-900 p-5">
+            <TagManager entryId={entry.id} initialTags={entryTags} />
+          </section>
+
+          {/* Genres (read-only, from Steam) */}
+          {entryGenres.length > 0 && (
+            <section className="rounded-lg border border-slate-700 bg-slate-900 p-5">
+              <p className="text-xs font-semibold text-slate-300 mb-3">Steam Genres</p>
+              <div className="flex flex-wrap gap-1.5">
+                {entryGenres.map((g) => (
+                  <span key={g} className="rounded px-2 py-0.5 text-xs bg-slate-700 text-slate-400 capitalize">
+                    {g}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Lists */}
+          <section className="rounded-lg border border-slate-700 bg-slate-900 p-5">
+            <AddToListPanel
+              shelfEntryId={entry.id}
+              initialLists={listSummaries}
+              initialMemberIds={memberIds}
+            />
+          </section>
+
+          {/* Remove game */}
+          <DeleteGameButton
+            entryId={entry.id}
+            gameName={entry.gameName}
+            hasSteamId={entry.steamAppId !== null}
+          />
+        </div>
+
+      </div>
+    </div>
     </div>
   );
 }

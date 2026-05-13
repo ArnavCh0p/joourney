@@ -8,35 +8,51 @@ datasource db {
 }
 
 model User {
-  id          String   @id @default(cuid())
-  steamId     String   @unique
-  displayName String
-  avatarUrl   String?
-  profileUrl  String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  steamId            String   @unique
+  displayName        String
+  avatarUrl          String?
+  profileUrl         String?
+  onboardingComplete Boolean  @default(true)
+  definedTags        String[] @default([]) // tag vocabulary — persists even before applied to a game
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   shelfEntries ShelfEntry[]
   sessions     Session[]
+  runs         Run[]
+  achievements Achievement[]
   buildLogs    BuildLog[]
+  lists        List[]
 }
 
 // One row per game on the user's shelf
 model ShelfEntry {
-  id        String      @id @default(cuid())
-  userId    String
-  steamAppId Int
-  gameName  String
-  status    ShelfStatus @default(BACKLOG)
-  rating    Int?        // 1–5
-  review    String?
-  isPublic  Boolean     @default(false)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  id              String      @id @default(cuid())
+  userId          String
+  steamAppId      Int?
+  igdbId          Int?
+  gameName        String
+  coverUrl        String?
+  platform        String      @default("Steam")
+  status          ShelfStatus @default(UNTRACKED)
+  rating          Int?
+  review          String?
+  isPublic        Boolean     @default(false)
+  isHidden        Boolean     @default(false)
+  isMultiplayer   Boolean     @default(false)
+  tags            String[]    @default([])  // user-created custom tags
+  genres          String[]    @default([])  // Steam-fetched genres (read-only)
+  playtimeMinutes Int         @default(0)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
-  user     User      @relation(fields: [userId], references: [id])
-  sessions Session[]
-  builds   BuildLog[]
+  user         User          @relation(fields: [userId], references: [id])
+  sessions     Session[]
+  runs         Run[]
+  achievements Achievement[]
+  builds       BuildLog[]
+  listEntries  ListEntry[]
 
   @@unique([userId, steamAppId])
 }
@@ -47,21 +63,95 @@ enum ShelfStatus {
   ABANDONED
   BACKLOG
   REPLAYING
+  UNTRACKED
+  WANT_TO_PLAY
+  MULTIPLAYER
+  MULTIPLAYER_ACTIVE
+  MULTIPLAYER_ON_BREAK
+  MULTIPLAYER_RETIRED
+}
+
+// User-created named collections of games (like playlists)
+model List {
+  id        String      @id @default(cuid())
+  userId    String
+  name      String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  user    User        @relation(fields: [userId], references: [id])
+  entries ListEntry[]
+}
+
+model ListEntry {
+  listId       String
+  shelfEntryId String
+  addedAt      DateTime @default(now())
+  rank         Int?     // user-defined rank within the list
+
+  list       List       @relation(fields: [listId], references: [id], onDelete: Cascade)
+  shelfEntry ShelfEntry @relation(fields: [shelfEntryId], references: [id], onDelete: Cascade)
+
+  @@id([listId, shelfEntryId])
 }
 
 // One row per play session
 model Session {
-  id           String   @id @default(cuid())
-  userId       String
-  shelfEntryId String
-  date         DateTime
-  notes        String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id              String   @id @default(cuid())
+  userId          String
+  shelfEntryId    String
+  runId           String?  // optional: which playthrough this session belongs to
+  date            DateTime
+  durationMinutes Int?
+  autoDetected    Boolean  @default(false)
+  notes           String?
+  music           String?  // freeform "now playing" note
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   user       User       @relation(fields: [userId], references: [id])
   shelfEntry ShelfEntry @relation(fields: [shelfEntryId], references: [id])
+  run        Run?       @relation(fields: [runId], references: [id])
   screenshots Screenshot[]
+}
+
+// A Steam achievement unlocked by the user for a specific game
+model Achievement {
+  id           String   @id @default(cuid())
+  userId       String
+  shelfEntryId String
+  apiName      String   // Steam internal name (unique per game)
+  displayName  String
+  description  String?
+  unlockedAt   DateTime // converted from Steam's unlocktime (Unix timestamp)
+  createdAt    DateTime @default(now())
+
+  user       User       @relation(fields: [userId], references: [id])
+  shelfEntry ShelfEntry @relation(fields: [shelfEntryId], references: [id])
+
+  @@unique([userId, shelfEntryId, apiName])
+}
+
+// A named playthrough/run for a game — groups sessions together
+model Run {
+  id           String    @id @default(cuid())
+  userId       String
+  shelfEntryId String
+  name         String
+  notes        String?
+  status       RunStatus @default(ACTIVE)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user       User       @relation(fields: [userId], references: [id])
+  shelfEntry ShelfEntry @relation(fields: [shelfEntryId], references: [id])
+  sessions   Session[]
+}
+
+enum RunStatus {
+  ACTIVE
+  COMPLETED
+  ABANDONED
 }
 
 // Per-game build documentation
@@ -70,7 +160,7 @@ model BuildLog {
   userId       String
   shelfEntryId String
   title        String
-  content      String   // free text / rich text
+  content      String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -79,10 +169,10 @@ model BuildLog {
   screenshots Screenshot[]
 }
 
-// Screenshots stored in Cloudflare R2; we keep the URL + metadata here
+// Screenshots stored in Cloudflare R2
 model Screenshot {
   id          String   @id @default(cuid())
-  r2Key       String   @unique // key in the R2 bucket
+  r2Key       String   @unique
   url         String
   sessionId   String?
   buildLogId  String?

@@ -14,10 +14,12 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col bg-zinc-950 text-zinc-100">
+      <body className="bg-slate-50 min-h-screen">
         <Providers>
-          <Navbar />
-          <main className="mx-auto w-full max-w-5xl px-4 py-8">{children}</main>
+          <div className="mx-auto max-w-6xl min-h-screen plane-texture shadow-[0_0_80px_rgba(0,0,0,0.12)]">
+            <Navbar />
+            <main className="px-6 py-8">{children}</main>
+          </div>
         </Providers>
       </body>
     </html>
