@@ -114,6 +114,8 @@ export default async function Home() {
     status: STATUS_DISPLAY[e.status] ?? e.status,
     rating: e.rating,
     hours: Math.round(e.playtimeMinutes / 60),
+    coverUrl: (e as { coverUrl?: string | null }).coverUrl ?? null,
+    platform: (e as { platform?: string }).platform ?? "Steam",
     tags:     (e as { tags?: string[] }).tags       ?? [],
     genres:   (e as { genres?: string[] }).genres   ?? [],
     isHidden:      (e as { isHidden?: boolean }).isHidden      ?? false,
@@ -268,7 +270,7 @@ export default async function Home() {
 
       {/* ── Trending on Steam ── */}
       <Suspense fallback={null}>
-        <TrendingGames libraryAppIds={entries.map((e) => e.steamAppId)} />
+        <TrendingGames libraryAppIds={entries.flatMap((e) => e.steamAppId != null ? [e.steamAppId] : [])} />
       </Suspense>
 
     </div>

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 type Game = {
   id: string;
-  steamAppId: number;
+  steamAppId: number | null;
   name: string;
   hours: number;
   isMultiplayer: boolean;

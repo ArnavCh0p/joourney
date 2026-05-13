@@ -1,4 +1,4 @@
-type PlayingGame = { id: string; steamAppId: number; name: string };
+type PlayingGame = { id: string; steamAppId: number | null; name: string };
 
 type NewsItem = {
   gid: string;
@@ -39,9 +39,9 @@ function timeAgo(unix: number): string {
 
 export default async function LibraryNews({ games }: { games: PlayingGame[] }) {
   const results = await Promise.all(
-    games.slice(0, 5).map(async (game) => ({
+    games.slice(0, 5).filter((g) => g.steamAppId != null).map(async (game) => ({
       game,
-      items: await fetchGameNews(game.steamAppId),
+      items: await fetchGameNews(game.steamAppId!),
     }))
   );
 

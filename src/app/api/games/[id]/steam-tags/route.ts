@@ -38,6 +38,8 @@ export async function POST(
   const existingGenres = rows[0]?.genres ?? [];
   if (existingGenres.length > 0) return NextResponse.json({ genres: existingGenres });
 
+  if (!entry.steamAppId) return NextResponse.json({ genres: [] });
+
   let steamGenres: string[] = [];
   try {
     const res = await fetch(
