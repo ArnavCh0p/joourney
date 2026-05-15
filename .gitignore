@@ -36,6 +36,7 @@ yarn-error.log*
 # internal / dev tooling
 .claude/
 CLAUDE.md
+POLISH.md
 cc_prompt.txt
 claude_output.log
 run_claude.bat
@@ -49,3 +50,5 @@ joourney_project_docs.docx
 next-env.d.ts
 
 /src/generated/prisma
+
+.vercel

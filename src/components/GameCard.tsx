@@ -40,7 +40,7 @@ export default function GameCard({ game, size = "M" }: { game: Game; size?: Size
   return (
     // No overflow-hidden on the outer div so the QuickActionsMenu dropdown can escape.
     // The image div uses rounded-t-xl overflow-hidden to clip the artwork instead.
-    <div className="group relative rounded-xl bg-white border border-slate-200 hover:border-slate-300 hover:shadow-md shadow-sm hover:-translate-y-0.5 transition-all duration-200 cursor-pointer">
+    <div className="group relative rounded-xl bg-slate-800 border border-slate-700 hover:border-slate-500 hover:shadow-md shadow-sm hover:-translate-y-0.5 transition-all duration-200 cursor-pointer">
 
       {/* Portrait art */}
       <div className="aspect-[2/3] relative overflow-hidden bg-slate-100 rounded-t-xl">
@@ -85,7 +85,7 @@ export default function GameCard({ game, size = "M" }: { game: Game; size?: Size
       {/* Info below art */}
       <div className="px-3 pt-2.5 pb-3 space-y-1.5">
         <div className="flex items-start justify-between gap-1">
-          <p className={`font-semibold text-slate-900 leading-snug truncate ${size === "S" ? "text-xs" : "text-[13px]"}`}>
+          <p className={`font-semibold text-slate-100 leading-snug truncate ${size === "S" ? "text-xs" : "text-[13px]"}`}>
             {game.name}
           </p>
           {/* Platform badge — only for manually added games (no Steam ID) */}
@@ -103,7 +103,7 @@ export default function GameCard({ game, size = "M" }: { game: Game; size?: Size
         {showTags && (
           <div className="flex gap-1 flex-wrap">
             {game.tags.slice(0, tagLimit).map((tag) => (
-              <span key={tag} className="rounded px-1.5 py-0.5 text-[10px] bg-slate-100 text-slate-600 capitalize">
+              <span key={tag} className="rounded px-1.5 py-0.5 text-[10px] bg-slate-700 text-slate-400 capitalize">
                 {tag}
               </span>
             ))}

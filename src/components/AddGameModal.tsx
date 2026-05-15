@@ -155,7 +155,7 @@ export default function AddGameModal({ onClose }: { onClose: () => void }) {
                 placeholder="Search or enter a title…"
                 autoFocus
                 autoComplete="off"
-                className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-slate-400 focus:outline-none pr-8"
+                className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-slate-400 focus:outline-none focus:ring-0 pr-8"
               />
               {searching && (
                 <span className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3 w-3 rounded-full border-2 border-slate-500 border-t-transparent animate-spin" />
@@ -217,7 +217,7 @@ export default function AddGameModal({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               onClick={() => setIsMultiplayer((v) => !v)}
-              className={`relative w-9 h-5 rounded-full transition-colors flex-shrink-0 ${isMultiplayer ? "bg-blue-600" : "bg-slate-600"}`}
+              className={`relative w-9 h-5 rounded-full overflow-hidden transition-colors flex-shrink-0 ${isMultiplayer ? "bg-emerald-600" : "bg-slate-600"}`}
             >
               <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${isMultiplayer ? "translate-x-4" : "translate-x-0.5"}`} />
             </button>
@@ -240,7 +240,7 @@ export default function AddGameModal({ onClose }: { onClose: () => void }) {
               {saving ? "Adding…" : "Add game"}
             </button>
             <button type="button" onClick={onClose}
-              className="text-sm text-slate-400 hover:text-slate-200 transition-colors">
+              className="rounded-lg border border-slate-600 px-4 py-2 text-sm text-slate-400 hover:border-slate-400 hover:text-slate-200 transition-colors">
               Cancel
             </button>
           </div>

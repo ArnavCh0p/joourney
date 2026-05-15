@@ -92,6 +92,10 @@ export default function ShelfPage({ games, initialFilter, totalHours: totalHours
   const [importMessage, setImportMessage]   = useState<string | null>(null);
   const [importError, setImportError]       = useState(false);
   const [showAddModal, setShowAddModal]     = useState(false);
+  const [editMode, setEditMode]             = useState(false);
+  const [selectedIds, setSelectedIds]       = useState<Set<string>>(new Set());
+  const [bulkStatus, setBulkStatus]         = useState("UNTRACKED");
+  const [bulkSaving, setBulkSaving]         = useState(false);
 
   useEffect(() => {
     const v  = localStorage.getItem("shelf-view")         as View    | null;
@@ -119,6 +123,36 @@ export default function ShelfPage({ games, initialFilter, totalHours: totalHours
   function toggleSplitMp() {
     setSplitMp((v) => { localStorage.setItem("shelf-split-mp", String(!v)); return !v; });
   }
+
+  function enterEditMode() { setEditMode(true);  setSelectedIds(new Set()); }
+  function exitEditMode()  { setEditMode(false); setSelectedIds(new Set()); setBulkStatus("UNTRACKED"); }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  async function applyBulkStatus() {
+    if (selectedIds.size === 0) return;
+    setBulkSaving(true);
+    await fetch("/api/games/bulk-status", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: [...selectedIds], status: bulkStatus }),
+    });
+    setBulkSaving(false);
+    exitEditMode();
+    router.refresh();
+  }
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape" && editMode) exitEditMode(); }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [editMode]);
 
   async function handleImport() {
     setImporting(true);
@@ -214,6 +248,28 @@ export default function ShelfPage({ games, initialFilter, totalHours: totalHours
   }
 
   function GameItem({ game }: { game: ShelfGame }) {
+    const isSelected = selectedIds.has(game.id);
+
+    if (editMode) {
+      return (
+        <div
+          className={`relative cursor-pointer ${isSelected ? "ring-2 ring-emerald-500 rounded-xl" : ""}`}
+          onClick={() => toggleSelect(game.id)}
+        >
+          <div className={`absolute top-2 left-2 z-20 h-5 w-5 rounded border-2 flex items-center justify-center
+            ${isSelected ? "bg-emerald-500 border-emerald-500" : "border-slate-400 bg-slate-900/60"}`}
+          >
+            {isSelected && (
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                <path d="M1.5 5L4 7.5L8.5 2.5" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
+              </svg>
+            )}
+          </div>
+          {view === "grid" ? <GameCard game={game} size={size} /> : <GameListRow game={game} />}
+        </div>
+      );
+    }
+
     return (
       <Link href={`/games/${game.id}?from=${encodeURIComponent(activeFilter)}`} className="block">
         {view === "grid" ? <GameCard game={game} size={size} /> : <GameListRow game={game} />}
@@ -285,6 +341,16 @@ export default function ShelfPage({ games, initialFilter, totalHours: totalHours
         <div className="flex items-start justify-between gap-4 mb-3">
           <h1 className="text-3xl font-bold text-slate-100 tracking-tight">My Library</h1>
           <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={editMode ? exitEditMode : enterEditMode}
+              className={`rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+                editMode
+                  ? "border-emerald-500 text-emerald-400 bg-emerald-500/10"
+                  : "border-slate-600 bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-slate-100"
+              }`}
+            >
+              {editMode ? "✓ Editing" : "Edit"}
+            </button>
             <button
               onClick={() => setShowAddModal(true)}
               className="rounded-md border border-slate-600 bg-slate-700 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-600 hover:text-slate-100 transition-colors"
@@ -494,6 +560,49 @@ export default function ShelfPage({ games, initialFilter, totalHours: totalHours
       )}
 
       <div className="mt-4 border-t border-slate-700" />
+
+      {/* ── Bulk edit banner ── */}
+      {editMode && (
+        <div className="sticky top-14 z-10 flex items-center gap-3 rounded-lg border border-slate-600
+          bg-slate-800/95 backdrop-blur px-4 py-2.5 mt-4 mb-0 shadow-lg">
+          <span className="text-sm text-slate-300 min-w-[6rem]">
+            {selectedIds.size} selected
+          </span>
+          <button
+            onClick={() => setSelectedIds(new Set(visibleGames.map((g) => g.id)))}
+            className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
+          >
+            Select all
+          </button>
+          <div className="ml-auto flex items-center gap-2">
+            <select
+              value={bulkStatus}
+              onChange={(e) => setBulkStatus(e.target.value)}
+              className="rounded-md border border-slate-600 bg-slate-700 px-2.5 py-1.5 text-sm text-slate-100 focus:outline-none cursor-pointer"
+            >
+              <option value="PLAYING">Playing</option>
+              <option value="REPLAYING">Replaying</option>
+              <option value="WANT_TO_PLAY">Want to Play</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="ABANDONED">Abandoned</option>
+              <option value="UNTRACKED">Untracked</option>
+            </select>
+            <button
+              onClick={applyBulkStatus}
+              disabled={selectedIds.size === 0 || bulkSaving}
+              className="rounded-md bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 px-3 py-1.5 text-sm font-medium text-white transition-colors"
+            >
+              {bulkSaving ? "Saving…" : "Apply"}
+            </button>
+            <button
+              onClick={exitEditMode}
+              className="rounded-md border border-slate-600 px-3 py-1.5 text-sm text-slate-400 hover:text-slate-200 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ── Games ── */}
       <div className="mt-4">

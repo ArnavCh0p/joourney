@@ -43,11 +43,15 @@ function relativeTime(date: Date): string {
   return `${diffDays} days ago`;
 }
 
-function StatCard({ value, label, accent }: { value: string | number; label: string; accent?: string }) {
+function StatCard({ value, label, accent, leftAccent }: { value: string | number; label: string; accent?: string; leftAccent?: string }) {
   return (
-    <div className="rounded-xl border border-slate-700 bg-slate-900 p-4">
-      <p className={`text-2xl font-semibold ${accent ?? "text-slate-100"}`}>{value}</p>
-      <p className="text-xs text-slate-500 mt-0.5">{label}</p>
+    <div className={`rounded-xl bg-slate-900 p-4 ${
+      leftAccent
+        ? `border-t border-r border-b border-slate-700 border-l-2 ${leftAccent}`
+        : "border border-slate-700"
+    }`}>
+      <p className={`text-3xl font-bold ${accent ?? "text-slate-100"}`}>{value}</p>
+      <p className="text-[11px] font-medium text-slate-500 uppercase tracking-wide mt-0.5">{label}</p>
     </div>
   );
 }
@@ -156,7 +160,7 @@ export default async function Home() {
 
       {/* ── You just played ── */}
       {recentAutoSessions.length > 0 && (
-        <section>
+        <section className="border-l-2 border-emerald-500/40 pl-4">
           <div className="flex items-center gap-2 mb-3">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
             <h2 className="text-sm font-semibold text-slate-200">
@@ -200,14 +204,14 @@ export default async function Home() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatCard value={totalHours.toLocaleString()} label="Total hours" />
         <StatCard value={visibleGames.length} label="Games in library" />
-        <StatCard value={completedCount} label="Completed" accent="text-sky-400" />
-        <StatCard value={playingGames.length} label="Currently playing" accent="text-emerald-400" />
+        <StatCard value={completedCount} label="Completed" accent="text-sky-400" leftAccent="border-l-sky-500" />
+        <StatCard value={playingGames.length} label="Currently playing" accent="text-emerald-400" leftAccent="border-l-emerald-500" />
       </div>
 
       {/* ── Currently Playing ── */}
       {playingGames.length > 0 && (
         <section>
-          <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">
+          <h2 className="text-base font-semibold text-slate-200 mb-3">
             Currently Playing
           </h2>
           <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
@@ -223,7 +227,7 @@ export default async function Home() {
       {/* ── Recently Journaled ── */}
       <section>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+          <h2 className="text-base font-semibold text-slate-200">
             Recently Journaled
           </h2>
           <Link href="/library" className="text-xs text-slate-400 hover:text-slate-200 transition-colors">
@@ -239,18 +243,20 @@ export default async function Home() {
           <div className="divide-y divide-slate-700/50">
             {recentJournaled.map((s) => (
               <Link key={s.id} href={`/games/${s.shelfEntry.id}`} className="block group">
-                <div className="flex gap-4 py-4 group-hover:opacity-75 transition-opacity">
-                  <img
-                    src={`https://cdn.cloudflare.steamstatic.com/steam/apps/${s.shelfEntry.steamAppId}/capsule_sm_120.jpg`}
-                    alt={s.shelfEntry.gameName}
-                    className="h-9 w-16 rounded object-cover flex-shrink-0 bg-slate-700"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2 mb-1">
-                      <span className="text-[13px] font-medium text-slate-200">{s.shelfEntry.gameName}</span>
-                      <span className="text-xs text-slate-500 flex-shrink-0">{relativeTime(s.date)}</span>
+                <div className="border-l-2 border-transparent group-hover:border-slate-500 pl-2 -ml-2 transition-all">
+                  <div className="flex gap-4 py-5">
+                    <img
+                      src={`https://cdn.cloudflare.steamstatic.com/steam/apps/${s.shelfEntry.steamAppId}/capsule_sm_120.jpg`}
+                      alt={s.shelfEntry.gameName}
+                      className="h-10 w-[72px] rounded-md object-cover flex-shrink-0 bg-slate-700"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-baseline gap-2 mb-1">
+                        <span className="text-[13px] font-medium text-slate-200">{s.shelfEntry.gameName}</span>
+                        <span className="text-xs text-slate-500 flex-shrink-0">{relativeTime(s.date)}</span>
+                      </div>
+                      <p className="text-sm text-slate-400 leading-relaxed line-clamp-2">{s.notes}</p>
                     </div>
-                    <p className="text-sm text-slate-400 leading-relaxed line-clamp-2">{s.notes}</p>
                   </div>
                 </div>
               </Link>

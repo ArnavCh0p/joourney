@@ -8,8 +8,8 @@ export default function SignInHero() {
         {/* ── Hero ── col-span-2 row-span-2 */}
         <div className="lg:col-span-2 lg:row-span-2 relative overflow-hidden rounded-2xl border border-slate-700/80 bg-slate-900 min-h-[260px] lg:min-h-0">
           {/* Soft radial glow top-right */}
-          <div className="absolute top-0 right-0 w-72 h-72 rounded-full bg-slate-500/8 blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full bg-slate-600/6 blur-2xl pointer-events-none" />
+          <div className="absolute top-0 right-0 w-72 h-72 rounded-full bg-emerald-500/6 blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full bg-sky-500/4 blur-2xl pointer-events-none" />
           <div className="relative z-10 p-8 h-full flex flex-col justify-between">
             <div>
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-5">Gaming journal</p>

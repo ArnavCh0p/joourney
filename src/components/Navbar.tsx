@@ -11,7 +11,7 @@ function NavLink({ href, label }: { href: string; label: string }) {
     <Link
       href={href}
       className={`text-sm transition-colors ${
-        active ? "text-white font-semibold" : "text-slate-400 hover:text-slate-200"
+        active ? "text-white font-semibold border-b-2 border-white pb-0.5" : "text-slate-400 hover:text-slate-200"
       }`}
     >
       {label}
@@ -24,12 +24,12 @@ export default function Navbar() {
   const isAuthed = status === "authenticated" && !!session;
 
   return (
-    <nav className="border-b border-slate-700 bg-slate-800 sticky top-0 z-10 px-4">
+    <nav className="border-b border-slate-600 bg-slate-900 sticky top-0 z-10 px-4">
       <div className="mx-auto flex max-w-6xl items-center justify-between h-14">
 
         <div className="flex items-center gap-6">
-          <Link href="/" className="text-[15px] font-bold tracking-tight text-white">
-            Joourney
+          <Link href="/" className="flex items-baseline gap-0 text-[15px] font-bold tracking-tight text-white">
+            J<span className="text-emerald-500 font-light text-[17px]">∞</span>rney
           </Link>
 
           {isAuthed && (
