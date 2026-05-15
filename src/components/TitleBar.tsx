@@ -2,13 +2,18 @@
 import { useEffect, useState } from "react";
 
 export default function TitleBar() {
-  const [isTauri, setIsTauri] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [isTauri, setIsTauri]   = useState(false);
 
   useEffect(() => {
-    setIsTauri(typeof window !== "undefined" && "__TAURI_INTERNALS__" in window);
+    setMounted(true);
+    setIsTauri(
+      typeof window !== "undefined" &&
+      (window as Record<string, unknown>).__TAURI_INTERNALS__ !== undefined
+    );
   }, []);
 
-  if (!isTauri) return null;
+  if (!mounted || !isTauri) return null;
 
   async function minimize() {
     const { getCurrentWindow } = await import("@tauri-apps/api/window");
