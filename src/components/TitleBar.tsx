@@ -5,7 +5,7 @@ export default function TitleBar() {
   const [isTauri, setIsTauri] = useState(false);
 
   useEffect(() => {
-    setIsTauri(typeof window !== "undefined" && "__TAURI__" in window);
+    setIsTauri(typeof window !== "undefined" && "__TAURI_INTERNALS__" in window);
   }, []);
 
   if (!isTauri) return null;
