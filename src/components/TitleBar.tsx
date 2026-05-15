@@ -9,7 +9,7 @@ export default function TitleBar() {
     setMounted(true);
     setIsTauri(
       typeof window !== "undefined" &&
-      (window as Record<string, unknown>).__TAURI_INTERNALS__ !== undefined
+      (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ !== undefined
     );
   }, []);
 
