@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import TitleBar from "@/components/TitleBar";
 import SplashScreen from "@/components/SplashScreen";
+import UpdateChecker from "@/components/UpdateChecker";
 import Providers from "./providers";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
@@ -19,6 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="bg-[#1e293b] min-h-screen">
         <Providers>
           <SplashScreen />
+          <UpdateChecker />
           <div className="mx-auto max-w-6xl min-h-screen plane-texture shadow-[0_0_80px_rgba(0,0,0,0.12)]">
             <TitleBar />
             <Navbar />
