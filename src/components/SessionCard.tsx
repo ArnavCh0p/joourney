@@ -15,29 +15,47 @@ function formatDuration(minutes: number | null): string | null {
   return `${m}m`;
 }
 
-function MusicDisplay({ raw }: { raw: string }) {
-  let data: MusicResult | null = null;
-  try { data = JSON.parse(raw); } catch { /* legacy plain text */ }
+function TrackThumb({ url }: { url: string | null }) {
+  const [failed, setFailed] = useState(false);
+  const icon = (
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-slate-600">
+      <path d="M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zm12-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
+    </svg>
+  );
+  if (!url || failed) {
+    return <div className="h-8 w-8 rounded bg-slate-800 flex items-center justify-center flex-shrink-0">{icon}</div>;
+  }
+  return (
+    <div className="h-8 w-8 rounded bg-slate-800 flex items-center justify-center flex-shrink-0 relative overflow-hidden">
+      {icon}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={url} alt="" className="absolute inset-0 w-full h-full object-cover" onError={() => setFailed(true)} />
+    </div>
+  );
+}
 
-  if (data) {
+function MusicDisplay({ raw }: { raw: string }) {
+  let tracks: MusicResult[] = [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) tracks = parsed;
+    else if (parsed?.id) tracks = [parsed]; // single object from previous format
+  } catch { /* legacy plain text */ }
+
+  if (tracks.length > 0) {
     return (
-      <div className="flex items-center gap-2 mt-1">
-        {data.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={data.imageUrl} alt="" className="h-8 w-8 rounded object-cover flex-shrink-0" />
-        ) : (
-          <div className="h-8 w-8 rounded bg-slate-800 flex items-center justify-center flex-shrink-0">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-slate-600">
-              <path d="M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zm12-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
-            </svg>
+      <div className="space-y-1.5 mt-1">
+        {tracks.map((t) => (
+          <div key={t.id} className="flex items-center gap-2">
+            <TrackThumb url={t.imageUrl} />
+            <div className="min-w-0">
+              <p className="text-xs font-medium text-slate-200 truncate">{t.name}</p>
+              <p className="text-[11px] text-slate-500 truncate">
+                {t.artist}{t.album ? ` · ${t.album}` : ""}
+              </p>
+            </div>
           </div>
-        )}
-        <div className="min-w-0">
-          <p className="text-xs font-medium text-slate-200 truncate">{data.name}</p>
-          <p className="text-[11px] text-slate-500 truncate">
-            {data.artist}{data.album ? ` · ${data.album}` : ""}
-          </p>
-        </div>
+        ))}
       </div>
     );
   }

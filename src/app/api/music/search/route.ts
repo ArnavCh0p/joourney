@@ -7,27 +7,10 @@ export type MusicResult = {
   album: string;
   releaseId: string | null;
   imageUrl: string | null;
-  type: "track" | "album";
 };
 
 const MB_BASE = "https://musicbrainz.org/ws/2";
-const CAA_BASE = "https://coverartarchive.org/release";
 const UA = "Joourney/0.2.0 (contact@joourney.app)";
-
-async function fetchCoverArt(releaseId: string): Promise<string | null> {
-  try {
-    const res = await fetch(`${CAA_BASE}/${releaseId}/front`, {
-      headers: { "User-Agent": UA },
-      redirect: "follow",
-      next: { revalidate: 3600 },
-    });
-    if (!res.ok) return null;
-    // The redirect lands on the actual image URL — return the final URL
-    return res.url;
-  } catch {
-    return null;
-  }
-}
 
 export async function GET(req: NextRequest) {
   const q = req.nextUrl.searchParams.get("q")?.trim();
@@ -44,27 +27,27 @@ export async function GET(req: NextRequest) {
     if (!res.ok) return NextResponse.json([]);
 
     const data = await res.json();
-    const recordings: MusicResult[] = [];
 
-    for (const r of data.recordings ?? []) {
-      const artist = r["artist-credit"]?.[0]?.artist?.name ?? "Unknown artist";
-      // Prefer the first release that has a release group
-      const release = r.releases?.[0];
-      const album = release?.title ?? "";
-      const releaseId: string | null = release?.id ?? null;
-
-      const imageUrl = releaseId ? await fetchCoverArt(releaseId) : null;
-
-      recordings.push({
-        id: r.id,
-        name: r.title,
-        artist,
-        album,
-        releaseId,
-        imageUrl,
-        type: "track",
-      });
-    }
+    // Construct Cover Art Archive URLs directly — no server-side fetch needed.
+    // The browser follows the redirect; images that don't exist are handled
+    // client-side with onError fallbacks.
+    const recordings: MusicResult[] = (data.recordings ?? []).map(
+      (r: Record<string, unknown>) => {
+        const credits = r["artist-credit"] as { artist: { name: string } }[] | undefined;
+        const releases = r.releases as { id: string; title: string }[] | undefined;
+        const release = releases?.[0];
+        return {
+          id: r.id as string,
+          name: r.title as string,
+          artist: credits?.[0]?.artist?.name ?? "Unknown artist",
+          album: release?.title ?? "",
+          releaseId: release?.id ?? null,
+          imageUrl: release?.id
+            ? `https://coverartarchive.org/release/${release.id}/front-250`
+            : null,
+        };
+      }
+    );
 
     return NextResponse.json(recordings);
   } catch {
