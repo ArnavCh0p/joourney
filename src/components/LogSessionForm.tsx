@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { RunProp } from "./RunManager";
+import MusicSearch from "./MusicSearch";
 
 type Props = {
   shelfEntryId: string;
@@ -143,12 +144,10 @@ export default function LogSessionForm({ shelfEntryId, runs = [], defaultRunId }
         <label className="block text-xs font-medium text-slate-400">
           Listened to <span className="text-slate-500 font-normal">(optional)</span>
         </label>
-        <input
-          type="text"
+        <MusicSearch
           value={music}
-          onChange={(e) => setMusic(e.target.value)}
+          onChange={setMusic}
           placeholder="Song, album, or playlist you had on"
-          className="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-slate-400 focus:outline-none"
         />
       </div>
 
