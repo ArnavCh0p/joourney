@@ -98,7 +98,7 @@ export default function SessionNoteEditor({ sessionId, date, duration, runs = []
       <MusicSearch
         value={music}
         onChange={setMusic}
-        placeholder="Listened to — song, album, or playlist (optional)"
+        placeholder="Search for a track"
       />
 
       <div className="flex items-center gap-3">

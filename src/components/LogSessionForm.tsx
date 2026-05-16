@@ -147,7 +147,7 @@ export default function LogSessionForm({ shelfEntryId, runs = [], defaultRunId }
         <MusicSearch
           value={music}
           onChange={setMusic}
-          placeholder="Song, album, or playlist you had on"
+          placeholder="Search for a track"
         />
       </div>
 

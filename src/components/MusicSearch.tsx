@@ -140,7 +140,7 @@ export default function MusicSearch({ value, onChange, placeholder }: Props) {
           onKeyDown={(e) => { if (e.key === "Enter") e.preventDefault(); }}
           onFocus={() => results.length > 0 && setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
-          placeholder={placeholder ?? "Search for a track…"}
+          placeholder={placeholder ?? "Search for a track"}
           className="w-full rounded-lg border border-slate-600 bg-slate-700 pl-8 pr-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-slate-400 focus:outline-none"
         />
         {loading && (

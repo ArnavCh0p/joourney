@@ -394,7 +394,7 @@ export default function SessionCard({
             <MusicSearch
               value={editMusic}
               onChange={setEditMusic}
-              placeholder="Search for a song or album…"
+              placeholder="Search for a track"
             />
           </div>
 
