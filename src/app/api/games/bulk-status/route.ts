@@ -15,16 +15,19 @@ export async function PATCH(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
   const body = await req.json().catch(() => null);
-  const { ids, status } = body ?? {};
+  const { ids, status, isMultiplayer } = body ?? {};
 
   if (!Array.isArray(ids) || ids.length === 0)
     return NextResponse.json({ error: "ids must be a non-empty array" }, { status: 400 });
   if (!status || !VALID_STATUSES.has(status))
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
 
+  const data: { status: ShelfStatus; isMultiplayer?: boolean } = { status: status as ShelfStatus };
+  if (typeof isMultiplayer === "boolean") data.isMultiplayer = isMultiplayer;
+
   const result = await prisma.shelfEntry.updateMany({
     where: { id: { in: ids }, userId: user.id },
-    data:  { status: status as ShelfStatus },
+    data,
   });
 
   return NextResponse.json({ updated: result.count });

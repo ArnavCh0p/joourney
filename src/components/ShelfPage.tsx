@@ -95,6 +95,7 @@ export default function ShelfPage({ games, initialFilter, totalHours: totalHours
   const [editMode, setEditMode]             = useState(false);
   const [selectedIds, setSelectedIds]       = useState<Set<string>>(new Set());
   const [bulkStatus, setBulkStatus]         = useState("UNTRACKED");
+  const [bulkMultiplayer, setBulkMultiplayer] = useState(false);
   const [bulkSaving, setBulkSaving]         = useState(false);
 
   useEffect(() => {
@@ -125,7 +126,7 @@ export default function ShelfPage({ games, initialFilter, totalHours: totalHours
   }
 
   function enterEditMode() { setEditMode(true);  setSelectedIds(new Set()); }
-  function exitEditMode()  { setEditMode(false); setSelectedIds(new Set()); setBulkStatus("UNTRACKED"); }
+  function exitEditMode()  { setEditMode(false); setSelectedIds(new Set()); setBulkStatus("UNTRACKED"); setBulkMultiplayer(false); }
 
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
@@ -141,7 +142,7 @@ export default function ShelfPage({ games, initialFilter, totalHours: totalHours
     await fetch("/api/games/bulk-status", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids: [...selectedIds], status: bulkStatus }),
+      body: JSON.stringify({ ids: [...selectedIds], status: bulkStatus, isMultiplayer: bulkMultiplayer || undefined }),
     });
     setBulkSaving(false);
     exitEditMode();
@@ -341,16 +342,18 @@ export default function ShelfPage({ games, initialFilter, totalHours: totalHours
         <div className="flex items-start justify-between gap-4 mb-3">
           <h1 className="text-3xl font-bold text-slate-100 tracking-tight">My Library</h1>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <button
-              onClick={editMode ? exitEditMode : enterEditMode}
-              className={`rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
-                editMode
-                  ? "border-emerald-500 text-emerald-400 bg-emerald-500/10"
-                  : "border-slate-600 bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-slate-100"
-              }`}
-            >
-              {editMode ? "✓ Editing" : "Edit"}
-            </button>
+            {activeFilter !== "All" && (
+              <button
+                onClick={editMode ? exitEditMode : enterEditMode}
+                className={`rounded-md border px-3 py-1.5 text-xs font-medium transition-colors ${
+                  editMode
+                    ? "border-emerald-500 text-emerald-400 bg-emerald-500/10"
+                    : "border-slate-600 bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-slate-100"
+                }`}
+              >
+                {editMode ? "✓ Editing" : "Edit"}
+              </button>
+            )}
             <button
               onClick={() => setShowAddModal(true)}
               className="rounded-md border border-slate-600 bg-slate-700 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-600 hover:text-slate-100 transition-colors"
@@ -574,7 +577,16 @@ export default function ShelfPage({ games, initialFilter, totalHours: totalHours
           >
             Select all
           </button>
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-3">
+            <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={bulkMultiplayer}
+                onChange={(e) => setBulkMultiplayer(e.target.checked)}
+                className="rounded border-slate-600 bg-slate-700 text-emerald-500 focus:ring-0 focus:ring-offset-0"
+              />
+              Multiplayer
+            </label>
             <select
               value={bulkStatus}
               onChange={(e) => setBulkStatus(e.target.value)}
