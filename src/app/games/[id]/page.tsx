@@ -204,7 +204,7 @@ export default async function GameDetailPage({
           />
         )}
         {/* Gradient fade to plane color at bottom */}
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/40 via-slate-800/70 to-[#1e293b]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-900/40 via-slate-900/70 to-[#0f172a]" />
 
         {/* Content on top of hero */}
         <div className="relative z-10 px-6 pt-6 pb-10">
