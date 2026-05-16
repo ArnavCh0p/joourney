@@ -94,8 +94,8 @@ export default function ShelfPage({ games, initialFilter, totalHours: totalHours
   const [showAddModal, setShowAddModal]     = useState(false);
   const [editMode, setEditMode]             = useState(false);
   const [selectedIds, setSelectedIds]       = useState<Set<string>>(new Set());
-  const [bulkStatus, setBulkStatus]         = useState("UNTRACKED");
-  const [bulkMultiplayer, setBulkMultiplayer] = useState(false);
+  const [bulkStatus, setBulkStatus]         = useState("");
+  const [bulkType, setBulkType]             = useState<"single" | "none" | "multi">("none");
   const [bulkSaving, setBulkSaving]         = useState(false);
 
   useEffect(() => {
@@ -126,7 +126,7 @@ export default function ShelfPage({ games, initialFilter, totalHours: totalHours
   }
 
   function enterEditMode() { setEditMode(true);  setSelectedIds(new Set()); }
-  function exitEditMode()  { setEditMode(false); setSelectedIds(new Set()); setBulkStatus("UNTRACKED"); setBulkMultiplayer(false); }
+  function exitEditMode()  { setEditMode(false); setSelectedIds(new Set()); setBulkStatus(""); setBulkType("none"); }
 
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
@@ -136,13 +136,16 @@ export default function ShelfPage({ games, initialFilter, totalHours: totalHours
     });
   }
 
-  async function applyBulkStatus() {
-    if (selectedIds.size === 0) return;
+  async function applyBulk() {
+    if (selectedIds.size === 0 || (!bulkStatus && bulkType === "none")) return;
     setBulkSaving(true);
+    const body: Record<string, unknown> = { ids: [...selectedIds] };
+    if (bulkStatus) body.status = bulkStatus;
+    if (bulkType !== "none") body.isMultiplayer = bulkType === "multi";
     await fetch("/api/games/bulk-status", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids: [...selectedIds], status: bulkStatus, isMultiplayer: bulkMultiplayer || undefined }),
+      body: JSON.stringify(body),
     });
     setBulkSaving(false);
     exitEditMode();
@@ -566,42 +569,57 @@ export default function ShelfPage({ games, initialFilter, totalHours: totalHours
 
       {/* ── Bulk edit banner ── */}
       {editMode && (
-        <div className="sticky top-14 z-10 flex items-center gap-3 rounded-lg border border-slate-600
-          bg-slate-800/95 backdrop-blur px-4 py-2.5 mt-4 mb-0 shadow-lg">
-          <span className="text-sm text-slate-300 min-w-[6rem]">
-            {selectedIds.size} selected
-          </span>
+        <div className="sticky top-14 z-10 flex flex-wrap items-center gap-3 rounded-lg border border-slate-600 bg-slate-800/95 backdrop-blur px-4 py-3 mt-4 shadow-lg">
+          <span className="text-sm text-slate-300 min-w-[5rem]">{selectedIds.size} selected</span>
           <button
             onClick={() => setSelectedIds(new Set(visibleGames.map((g) => g.id)))}
             className="text-xs text-slate-400 hover:text-slate-200 transition-colors"
           >
             Select all
           </button>
-          <div className="ml-auto flex items-center gap-3">
-            <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={bulkMultiplayer}
-                onChange={(e) => setBulkMultiplayer(e.target.checked)}
-                className="rounded border-slate-600 bg-slate-700 text-emerald-500 focus:ring-0 focus:ring-offset-0"
-              />
-              Multiplayer
-            </label>
+
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            {/* Game type toggle — single / no change / multiplayer */}
+            <div className="flex overflow-hidden rounded-md border border-slate-600 text-xs font-medium">
+              {([ ["single", "Single player"], ["none", "—"], ["multi", "Multiplayer"] ] as const).map(([val, label]) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setBulkType(val)}
+                  className={`px-2.5 py-1.5 transition-colors border-l border-slate-600 first:border-l-0 ${
+                    bulkType === val ? "bg-white text-slate-900" : "text-slate-400 hover:text-slate-200 hover:bg-slate-700"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Status dropdown — all statuses including multiplayer, plus "no change" */}
             <select
               value={bulkStatus}
               onChange={(e) => setBulkStatus(e.target.value)}
               className="rounded-md border border-slate-600 bg-slate-700 px-2.5 py-1.5 text-sm text-slate-100 focus:outline-none cursor-pointer"
             >
-              <option value="PLAYING">Playing</option>
-              <option value="REPLAYING">Replaying</option>
-              <option value="WANT_TO_PLAY">Want to Play</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="ABANDONED">Abandoned</option>
-              <option value="UNTRACKED">Untracked</option>
+              <option value="">— Status: no change —</option>
+              <optgroup label="Standard">
+                <option value="PLAYING">Playing</option>
+                <option value="REPLAYING">Replaying</option>
+                <option value="WANT_TO_PLAY">Want to Play</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="ABANDONED">Abandoned</option>
+                <option value="UNTRACKED">Untracked</option>
+              </optgroup>
+              <optgroup label="Multiplayer">
+                <option value="MULTIPLAYER_ACTIVE">Active</option>
+                <option value="MULTIPLAYER_ON_BREAK">On Break</option>
+                <option value="MULTIPLAYER_RETIRED">Retired</option>
+              </optgroup>
             </select>
+
             <button
-              onClick={applyBulkStatus}
-              disabled={selectedIds.size === 0 || bulkSaving}
+              onClick={applyBulk}
+              disabled={selectedIds.size === 0 || bulkSaving || (!bulkStatus && bulkType === "none")}
               className="rounded-md bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 px-3 py-1.5 text-sm font-medium text-white transition-colors"
             >
               {bulkSaving ? "Saving…" : "Apply"}
