@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import type { RunProp } from "./RunManager";
+import MusicSearch from "./MusicSearch";
 
 function formatDuration(minutes: number | null): string | null {
   if (!minutes || minutes <= 0) return null;
@@ -94,12 +95,10 @@ export default function SessionNoteEditor({ sessionId, date, duration, runs = []
         autoFocus
       />
 
-      <input
-        type="text"
+      <MusicSearch
         value={music}
-        onChange={(e) => setMusic(e.target.value)}
+        onChange={setMusic}
         placeholder="Listened to — song, album, or playlist (optional)"
-        className="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-slate-400 focus:outline-none"
       />
 
       <div className="flex items-center gap-3">

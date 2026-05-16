@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { RunProp, AchievementProp, ScreenshotProp } from "./RunManager";
+import MusicSearch from "./MusicSearch";
+import type { MusicResult } from "@/app/api/music/search/route";
 
 function formatDuration(minutes: number | null): string | null {
   if (!minutes || minutes <= 0) return null;
@@ -11,6 +13,41 @@ function formatDuration(minutes: number | null): string | null {
   if (h > 0 && m > 0) return `${h}h ${m}m`;
   if (h > 0) return `${h}h`;
   return `${m}m`;
+}
+
+function MusicDisplay({ raw }: { raw: string }) {
+  let data: MusicResult | null = null;
+  try { data = JSON.parse(raw); } catch { /* legacy plain text */ }
+
+  if (data) {
+    return (
+      <div className="flex items-center gap-2 mt-1">
+        {data.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={data.imageUrl} alt="" className="h-8 w-8 rounded object-cover flex-shrink-0" />
+        ) : (
+          <div className="h-8 w-8 rounded bg-slate-800 flex items-center justify-center flex-shrink-0">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-slate-600">
+              <path d="M9 18V5l12-2v13M9 18a3 3 0 1 1-6 0 3 3 0 0 1 6 0zm12-2a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
+            </svg>
+          </div>
+        )}
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-slate-200 truncate">{data.name}</p>
+          <p className="text-[11px] text-slate-500 truncate">
+            {data.artist}{data.album ? ` · ${data.album}` : ""}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Legacy plain-text entry
+  return (
+    <p className="text-xs text-slate-400">
+      <span className="text-slate-500">Listened to —</span> {raw}
+    </p>
+  );
 }
 
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/gif", "image/webp"]);
@@ -218,11 +255,7 @@ export default function SessionCard({
             ? <p className="text-sm text-slate-200 whitespace-pre-wrap leading-relaxed">{notes}</p>
             : <p className="text-xs text-slate-500 italic">No notes.</p>
           }
-          {music && (
-            <p className="text-xs text-slate-400">
-              <span className="text-slate-500">Listened to —</span> {music}
-            </p>
-          )}
+          {music && <MusicDisplay raw={music} />}
           {achievements.length > 0 && (
             <div className="pt-1 space-y-1.5 border-t border-slate-700/60">
               <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">Achievements unlocked</p>
@@ -340,12 +373,10 @@ export default function SessionCard({
             <label className="block text-xs text-slate-400 mb-1.5">
               Listened to <span className="text-slate-500">(optional)</span>
             </label>
-            <input
-              type="text"
+            <MusicSearch
               value={editMusic}
-              onChange={(e) => setEditMusic(e.target.value)}
-              placeholder="Song, album, or playlist"
-              className="w-full rounded-lg border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-500 focus:border-slate-400 focus:outline-none"
+              onChange={setEditMusic}
+              placeholder="Search for a song or album…"
             />
           </div>
 
