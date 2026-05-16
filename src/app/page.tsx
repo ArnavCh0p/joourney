@@ -160,7 +160,7 @@ export default async function Home() {
 
       {/* ── You just played ── */}
       {recentAutoSessions.length > 0 && (
-        <section className="border-l-2 border-emerald-500/40 pl-4">
+        <section>
           <div className="flex items-center gap-2 mb-3">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
             <h2 className="text-sm font-semibold text-slate-200">
@@ -175,7 +175,7 @@ export default async function Home() {
               <Link
                 key={s.id}
                 href={`/games/${s.shelfEntryId}`}
-                className="flex items-center gap-3 rounded-lg border border-slate-600/50 bg-slate-800/60 px-3 py-2.5 hover:bg-slate-700/60 transition-all group"
+                className="flex items-center gap-3 border-l-2 border-emerald-400 pl-3 -ml-px py-2.5 hover:bg-slate-800/40 rounded-r-md transition-colors group"
               >
                 <img
                   src={`https://cdn.cloudflare.steamstatic.com/steam/apps/${s.steamAppId}/capsule_sm_120.jpg`}
