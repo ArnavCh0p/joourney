@@ -1,6 +1,6 @@
 {
   "name": "joourney",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -15,6 +15,7 @@
     "@prisma/client": "^6.19.3",
     "@tauri-apps/api": "^2.11.0",
     "@tauri-apps/plugin-process": "^2.3.1",
+    "@tauri-apps/plugin-shell": "^2.3.5",
     "@tauri-apps/plugin-updater": "^2.10.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

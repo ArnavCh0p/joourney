@@ -1,3 +1,5 @@
+import { ExternalLink } from "@/components/ExternalLink";
+
 type PlayingGame = { id: string; steamAppId: number | null; name: string };
 
 type NewsItem = {
@@ -60,12 +62,10 @@ export default async function LibraryNews({ games }: { games: PlayingGame[] }) {
       </h2>
       <div className="space-y-2">
         {flat.map(({ game, item }) => (
-          <a
+          <ExternalLink
             key={item.gid}
             href={item.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-start gap-4 rounded-xl border border-slate-700/50 bg-slate-900 px-4 py-3.5 hover:bg-slate-800/70 transition-colors group"
+            className="w-full flex items-start gap-4 rounded-xl border border-slate-700/50 bg-slate-900 px-4 py-3.5 hover:bg-slate-800/70 transition-colors group text-left"
           >
             <img
               src={`https://cdn.cloudflare.steamstatic.com/steam/apps/${game.steamAppId}/capsule_sm_120.jpg`}
@@ -83,7 +83,7 @@ export default async function LibraryNews({ games }: { games: PlayingGame[] }) {
               </div>
             </div>
             <span className="text-slate-600 flex-shrink-0 group-hover:text-slate-300 transition-colors mt-0.5">↗</span>
-          </a>
+          </ExternalLink>
         ))}
       </div>
     </section>

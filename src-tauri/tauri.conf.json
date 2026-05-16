@@ -1,11 +1,11 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Joourney",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "identifier": "com.joourney.app",
   "build": {
     "frontendDist": "https://joourney-seven.vercel.app/",
-    "devUrl": "https://joourney-seven.vercel.app/"
+    "devUrl": "http://localhost:3000"
   },
   "app": {
     "windows": [
@@ -16,7 +16,7 @@
         "resizable": true,
         "fullscreen": false,
         "decorations": false,
-        "backgroundColor": "#1e293b"
+        "backgroundColor": "#0f172a"
       }
     ],
     "security": {
@@ -25,7 +25,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "REPLACE_WITH_YOUR_PUBLIC_KEY",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IERBNUE3NUFENzJEMDg4QTgKUldTb2lOQnlyWFZhMm5lL3d5dXh0bHhiVXJ4Rk82UkJOL2tQQXp2OUZKd3p4OTFnOTlPSVA0Y1MK",
       "endpoints": [
         "https://github.com/ArnavCh0p/joourney/releases/latest/download/latest.json"
       ]

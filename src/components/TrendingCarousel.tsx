@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { openExternal } from "@/lib/openExternal";
 
 export type TrendingGame = {
   id: number;
@@ -49,12 +50,11 @@ export default function TrendingCarousel({ games }: { games: TrendingGame[] }) {
         style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
       >
         {games.map((game) => (
-          <a
+          <button
             key={game.id}
-            href={`https://store.steampowered.com/app/${game.id}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex-shrink-0 w-44 group"
+            type="button"
+            onClick={() => openExternal(`https://store.steampowered.com/app/${game.id}`)}
+            className="flex-shrink-0 w-44 group text-left"
           >
             <div className="relative rounded-lg overflow-hidden bg-slate-800">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -72,7 +72,7 @@ export default function TrendingCarousel({ games }: { games: TrendingGame[] }) {
             <p className="mt-2 text-xs font-medium text-slate-300 truncate group-hover:text-white transition-colors">
               {game.name}
             </p>
-          </a>
+          </button>
         ))}
       </div>
     </section>
