@@ -29,21 +29,6 @@ jobs:
       - name: Install deps
         run: npm ci
 
-      - name: Extract changelog for this version
-        id: changelog
-        shell: pwsh
-        run: |
-          $tag = "${{ github.ref_name }}" -replace '^v', ''
-          $content = Get-Content CHANGELOG.md -Raw
-          $pattern = "(?s)## \[$tag\][^\n]*\n(.*?)(?=\n## \[|\z)"
-          if ($content -match $pattern) {
-            $notes = $matches[1].Trim()
-          } else {
-            $notes = "See CHANGELOG.md for details."
-          }
-          $notes = $notes -replace '"', '\"'
-          echo "notes=$notes" >> $env:GITHUB_OUTPUT
-
       - name: Build and publish release
         uses: tauri-apps/tauri-action@v0
         env:
@@ -54,9 +39,8 @@ jobs:
           tagName: ${{ github.ref_name }}
           releaseName: Joourney ${{ github.ref_name }}
           releaseBody: |
-            ${{ steps.changelog.outputs.notes }}
+            See CHANGELOG.md for full details.
 
-            ---
             > Windows will show a security warning on first install — click **More info → Run anyway**.
           releaseDraft: true
           prerelease: false
