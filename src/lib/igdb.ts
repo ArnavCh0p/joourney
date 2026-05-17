@@ -58,9 +58,10 @@ export async function searchIGDB(query: string, limit = 8): Promise<IGDBResult[]
   const token = await getAccessToken();
   // Strip quotes to prevent IGDB query injection
   const safe = query.replace(/"/g, "").slice(0, 100);
-  // No where clause — the category field is often unpopulated in IGDB, so any
-  // category or version_parent filter silently drops most results.
-  const body = `fields name,cover.url,platforms.name; search "${safe}"; limit ${limit};`;
+  // Filter out DLC (1), expansions (2), and bundles (3) — they clutter results
+  // for popular titles. Request `follows` so we can sort by popularity after the
+  // response: IGDB's `search` keyword ignores server-side `sort`, so we sort locally.
+  const body = `fields name,cover.url,platforms.name,follows; search "${safe}"; where category != 1 & category != 2 & category != 3; limit ${limit};`;
 
   const res = await fetch(IGDB_GAMES_URL, {
     method: "POST",
@@ -80,14 +81,19 @@ export async function searchIGDB(query: string, limit = 8): Promise<IGDBResult[]
     name: string;
     cover?: { url: string };
     platforms?: { name: string }[];
+    follows?: number;
   }>;
-  return games.map((g) => ({
-    igdbId:   g.id,
-    name:     g.name,
-    // IGDB returns protocol-relative URLs (//images.igdb.com/...); use t_cover_big (264×374)
-    coverUrl: g.cover?.url
-      ? `https:${g.cover.url.replace("t_thumb", "t_cover_big")}`
-      : null,
-    platform: g.platforms ? mapPlatform(g.platforms) : "Other",
-  }));
+  // Sort by follow count so canonical/popular games (e.g. Valorant, Fortnite)
+  // surface first — IGDB text-relevance alone buries them behind spin-offs.
+  return games
+    .sort((a, b) => (b.follows ?? 0) - (a.follows ?? 0))
+    .map((g) => ({
+      igdbId:   g.id,
+      name:     g.name,
+      // IGDB returns protocol-relative URLs (//images.igdb.com/...); use t_cover_big (264×374)
+      coverUrl: g.cover?.url
+        ? `https:${g.cover.url.replace("t_thumb", "t_cover_big")}`
+        : null,
+      platform: g.platforms ? mapPlatform(g.platforms) : "Other",
+    }));
 }
