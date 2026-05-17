@@ -35,15 +35,15 @@ async function getAccessToken(): Promise<string> {
   return cachedToken.value;
 }
 
-// Map IGDB platform names to Joourney's platform enum values
+// Map IGDB platform names to Joourney's platform enum values.
+// PC is checked across all platforms first — a game available on PC + console
+// should show "PC" since this is a PC gaming journal.
 function mapPlatform(platforms: { name: string }[]): string {
-  for (const { name } of platforms) {
-    const n = name.toLowerCase();
-    if (n.includes("playstation"))                                            return "PlayStation";
-    if (n.includes("xbox"))                                                   return "Xbox";
-    if (n.includes("nintendo") || n.includes("switch") || n.includes("wii")) return "Nintendo";
-    if (n.includes("pc") || n.includes("windows") || n.includes("mac") || n.includes("linux")) return "PC";
-  }
+  const names = platforms.map((p) => p.name.toLowerCase());
+  if (names.some((n) => n.includes("pc") || n.includes("windows") || n.includes("mac") || n.includes("linux"))) return "PC";
+  if (names.some((n) => n.includes("playstation")))                                            return "PlayStation";
+  if (names.some((n) => n.includes("xbox")))                                                   return "Xbox";
+  if (names.some((n) => n.includes("nintendo") || n.includes("switch") || n.includes("wii"))) return "Nintendo";
   return "Other";
 }
 
