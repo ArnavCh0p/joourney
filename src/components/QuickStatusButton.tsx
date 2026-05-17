@@ -16,6 +16,7 @@ const MP_STATUSES = [
   { enum: "MULTIPLAYER_ACTIVE",   label: "Active",    dot: "bg-blue-500"   },
   { enum: "MULTIPLAYER_ON_BREAK", label: "On Break",  dot: "bg-amber-500"  },
   { enum: "MULTIPLAYER_RETIRED",  label: "Retired",   dot: "bg-slate-600"  },
+  { enum: "UNTRACKED",            label: "Untracked", dot: "bg-slate-400"  },
 ];
 
 // Map old/new display labels to their dot color for the button face

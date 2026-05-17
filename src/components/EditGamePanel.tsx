@@ -13,9 +13,10 @@ const SINGLEPLAYER_STATUSES = [
 ];
 
 const MULTIPLAYER_STATUSES = [
-  { value: "MULTIPLAYER_ACTIVE",   label: "Active"   },
-  { value: "MULTIPLAYER_ON_BREAK", label: "On Break" },
-  { value: "MULTIPLAYER_RETIRED",  label: "Retired"  },
+  { value: "MULTIPLAYER_ACTIVE",   label: "Active"    },
+  { value: "MULTIPLAYER_ON_BREAK", label: "On Break"  },
+  { value: "MULTIPLAYER_RETIRED",  label: "Retired"   },
+  { value: "UNTRACKED",            label: "Untracked" },
 ];
 
 const MULTIPLAYER_STATUS_VALUES = new Set([
