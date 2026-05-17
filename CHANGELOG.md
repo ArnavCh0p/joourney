@@ -5,6 +5,35 @@ Newest version at the top. Format: date · what changed.
 
 ---
 
+## [0.3.0] — 2026-05-17
+
+### Added
+- In-app feedback button — subtle "Feedback" link in the navbar opens a modal (Bug / Idea / Other) that posts directly to Discord
+- Dedicated title bar drag strip — window is now draggable from a clean seamless strip above the navbar, matching the Claude desktop style
+- Slim custom scrollbars — replaces the Windows default with a thin slate thumb on a transparent track
+- Multiplayer games now have an "Untracked" status for casual play with no logging
+- Bulk edit: add selected games to a list directly from edit mode
+- Bulk edit: warns before applying a status that doesn't match selected game types
+- Lists: optional description field, editable inline
+- Lists: grid / list view toggle with per-device memory
+- Lists: rank badge shown on grid cards when sorted by ranking
+- Profile: clicking a tag chip navigates to the library filtered by that tag
+- Library: "Hidden" tab shows hidden games — still fully navigable and loggable
+- Library: grouping by tag now correctly shows games in all their matching tag sections
+
+### Fixed
+- Window now opens centered and has a minimum size of 900×600
+- Feedback modal renders via React portal — always appears centered, never clipped by the navbar
+- Status dropdown closes when clicking outside; only one open at a time
+- Session logs for hidden games no longer appear in the home feed
+- Cover art image fallback cascade — tries Steam capsule, then header, then hides gracefully
+- Library news links now open in the system browser
+
+### Changed
+- Window controls (minimize / maximize / close) moved out of the navbar into a dedicated title bar strip
+
+---
+
 ## [0.2.0] — 2026-05-16
 
 ### Added
