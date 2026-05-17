@@ -95,6 +95,12 @@ body {
   --sidebar-ring: #1d9e75;
 }
 
+/* Slim dark scrollbars throughout the app */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: #475569; }
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
