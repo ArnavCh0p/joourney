@@ -277,8 +277,8 @@ export default function ListDetail({
       {/* Games */}
       {view === "grid" ? (
         <div className="grid gap-2 grid-cols-3 sm:grid-cols-4 lg:grid-cols-6">
-          {sorted.map((game) => (
-            <Link key={game.shelfEntryId} href={`/games/${game.shelfEntryId}`} className="block">
+          {sorted.map((game, i) => (
+            <Link key={game.shelfEntryId} href={`/games/${game.shelfEntryId}`} className="block relative">
               <GameCard
                 game={{
                   id:           game.shelfEntryId,
@@ -294,6 +294,11 @@ export default function ListDetail({
                 }}
                 size="S"
               />
+              {sortBy === "rank" && (
+                <span className="absolute top-2 left-2 z-10 flex h-5 min-w-[20px] items-center justify-center rounded bg-black/70 px-1 text-[10px] font-semibold text-white tabular-nums">
+                  {i + 1}
+                </span>
+              )}
             </Link>
           ))}
         </div>
