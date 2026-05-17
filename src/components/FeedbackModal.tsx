@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 
 type FeedbackType = "Bug" | "Idea" | "Other";
 
@@ -58,13 +59,13 @@ export default function FeedbackModal() {
         Feedback
       </button>
 
-      {open && (
+      {open && createPortal(
         <div
           ref={backdropRef}
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm"
           onClick={(e) => { if (e.target === backdropRef.current) close(); }}
         >
-          <div className="w-full max-w-md rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-xl">
+          <div className="w-full max-w-md mx-4 rounded-xl border border-slate-700 bg-slate-900 p-6 shadow-xl">
             {sent ? (
               <div className="flex flex-col items-center gap-3 py-4">
                 <span className="text-2xl">✓</span>
@@ -124,7 +125,8 @@ export default function FeedbackModal() {
               </>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
