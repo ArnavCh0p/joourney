@@ -20,8 +20,8 @@ const STATUS_DISPLAY: Record<string, string> = {
   MULTIPLAYER_RETIRED:   "Retired",
 };
 
-export default async function LibraryPage({ searchParams }: { searchParams: Promise<{ filter?: string }> }) {
-  const { filter } = await searchParams;
+export default async function LibraryPage({ searchParams }: { searchParams: Promise<{ filter?: string; tag?: string }> }) {
+  const { filter, tag } = await searchParams;
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/");
 
@@ -59,5 +59,5 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
       || ["MULTIPLAYER","MULTIPLAYER_ACTIVE","MULTIPLAYER_ON_BREAK","MULTIPLAYER_RETIRED"].includes(e.status),
   }));
 
-  return <ShelfPage games={games} initialFilter={filter} totalHours={totalHours} />;
+  return <ShelfPage games={games} initialFilter={filter} initialTag={tag} totalHours={totalHours} />;
 }

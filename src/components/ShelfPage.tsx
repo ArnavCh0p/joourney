@@ -74,12 +74,12 @@ function sortGames(games: ShelfGame[], key: SortKey): ShelfGame[] {
   });
 }
 
-export default function ShelfPage({ games, initialFilter, totalHours: totalHoursProp }: { games: ShelfGame[]; initialFilter?: string; totalHours?: number }) {
+export default function ShelfPage({ games, initialFilter, initialTag, totalHours: totalHoursProp }: { games: ShelfGame[]; initialFilter?: string; initialTag?: string; totalHours?: number }) {
   const router = useRouter();
 
   const [activeFilter, setActiveFilter]     = useState(initialFilter ?? "All");
   const [activeGenres, setActiveGenres]     = useState<string[]>([]);
-  const [activeUserTag, setActiveUserTag]   = useState<string | null>(null);
+  const [activeUserTag, setActiveUserTag]   = useState<string | null>(initialTag ?? null);
   const [groupBy, setGroupBy]               = useState<GroupBy>("none");
   const [splitPlaying, setSplitPlaying]     = useState(false);
   const [splitMp, setSplitMp]               = useState(true);
