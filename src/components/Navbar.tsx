@@ -4,6 +4,7 @@ import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import FeedbackModal from "./FeedbackModal";
 
 function NavLink({ href, label }: { href: string; label: string }) {
   const pathname = usePathname();
@@ -124,6 +125,7 @@ export default function Navbar() {
 
           {isAuthed && (
             <div className="flex items-center gap-3">
+              <FeedbackModal />
               {session.user?.image && (
                 <img
                   src={session.user.image}
