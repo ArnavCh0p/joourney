@@ -5,14 +5,6 @@ import { useRouter } from "next/navigation";
 import type { RunProp } from "./RunManager";
 import MusicSearch from "./MusicSearch";
 
-function formatTime(isoString: string): string {
-  return new Date(isoString).toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: true,
-  });
-}
-
 function formatDuration(minutes: number | null): string | null {
   if (!minutes || minutes <= 0) return null;
   const h = Math.floor(minutes / 60);
@@ -26,12 +18,11 @@ type Props = {
   sessionId: string;
   date: string;
   duration: number | null;
-  rawDateTime?: string | null;
   runs?: RunProp[];
   currentRunId?: string | null;
 };
 
-export default function SessionNoteEditor({ sessionId, date, duration, rawDateTime, runs = [], currentRunId }: Props) {
+export default function SessionNoteEditor({ sessionId, date, duration, runs = [], currentRunId }: Props) {
   const router  = useRouter();
   const [notes, setNotes]   = useState("");
   const [music, setMusic]   = useState("");
@@ -74,9 +65,7 @@ export default function SessionNoteEditor({ sessionId, date, duration, rawDateTi
           ) : (
             <span className="text-[10px] text-slate-500">duration unknown</span>
           )}
-          <span className="text-[10px] text-slate-500">
-            auto-detected{rawDateTime ? ` · ${formatTime(rawDateTime)}` : ""} · no notes yet
-          </span>
+          <span className="text-[10px] text-slate-500">auto-detected · no notes yet</span>
         </div>
       </div>
 

@@ -32,7 +32,7 @@ export async function PATCH(
 
   const session = await prisma.session.findUnique({
     where: { id },
-    select: { userId: true, shelfEntryId: true },
+    select: { userId: true, shelfEntryId: true, durationMinutes: true },
   });
 
   if (!session || session.userId !== user.id) {
@@ -52,9 +52,11 @@ export async function PATCH(
 
   const trimmedNotes = body.notes?.trim() || null;
   const trimmedMusic = body.music !== undefined ? (body.music?.trim() || null) : undefined;
-  const dur = (typeof body.durationMinutes === "number" && body.durationMinutes > 0)
-    ? body.durationMinutes
-    : null;
+  // Only update durationMinutes if explicitly provided; otherwise preserve the existing value.
+  // This prevents auto-detected session durations from being wiped when notes are saved.
+  const dur = "durationMinutes" in body
+    ? ((typeof body.durationMinutes === "number" && body.durationMinutes > 0) ? body.durationMinutes : null)
+    : (session.durationMinutes ?? null);
   const runId = body.runId !== undefined ? (body.runId ?? null) : undefined;
   const now = new Date();
 

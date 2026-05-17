@@ -15,9 +15,8 @@ export type RunProp = {
 
 export type SessionProp = {
   id: string;
-  date: string;           // formatted for display, e.g. "November 1, 2024"
-  rawDate: string;        // YYYY-MM-DD UTC, used for matching achievements
-  rawDateTime?: string | null; // full ISO timestamp, only for auto-detected sessions
+  date: string;       // formatted for display, e.g. "November 1, 2024"
+  rawDate: string;    // YYYY-MM-DD UTC, used for matching achievements
   durationMinutes: number | null;
   notes: string | null;
   music: string | null;
@@ -578,7 +577,6 @@ export default function RunManager({ shelfEntryId, runs: initialRuns, sessions, 
             duration={s.durationMinutes}
             runs={runs}
             currentRunId={s.runId}
-            rawDateTime={s.rawDateTime}
           />
         ))
       )}
@@ -610,7 +608,6 @@ export default function RunManager({ shelfEntryId, runs: initialRuns, sessions, 
               showRunBadge={selectedRunId === "all" && hasRuns}
               achievements={achievements.filter((a) => a.unlockedDate === s.rawDate)}
               initialScreenshots={s.screenshots}
-              rawDateTime={s.rawDateTime}
             />
           ))}
         </div>
