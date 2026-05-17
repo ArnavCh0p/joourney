@@ -16,7 +16,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
-      <body className="bg-[#0f172a] min-h-screen">
+      <body className="bg-[#0f172a] min-h-screen w-full">
         <Providers>
           <SplashScreen />
           <UpdateChecker />
