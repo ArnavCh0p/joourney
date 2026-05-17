@@ -180,7 +180,6 @@ export default function AddGameModal({ onClose }: { onClose: () => void }) {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-slate-100 truncate">{r.name}</p>
-                        <p className="text-xs text-slate-500">{r.platform}</p>
                       </div>
                     </button>
                   ))}
