@@ -321,6 +321,11 @@ export default function ListDetail({
                     src={game.coverUrl ?? `https://cdn.cloudflare.steamstatic.com/steam/apps/${game.steamAppId}/capsule_sm_120.jpg`}
                     alt={game.gameName}
                     className="h-9 w-16 rounded object-cover bg-slate-800"
+                    onError={(e) => {
+                      const img = e.currentTarget as HTMLImageElement;
+                      const fb = `https://cdn.cloudflare.steamstatic.com/steam/apps/${game.steamAppId}/header.jpg`;
+                      if (img.src !== fb) { img.src = fb; } else { img.style.display = "none"; }
+                    }}
                   />
                 </Link>
 

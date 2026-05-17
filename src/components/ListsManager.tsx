@@ -89,6 +89,7 @@ export default function ListsManager({ initialLists }: { initialLists: ListItem[
                       src={`https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/header.jpg`}
                       alt=""
                       className="h-8 w-14 rounded object-cover ring-1 ring-slate-600"
+                      onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
                     />
                   ))}
                 </div>
