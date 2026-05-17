@@ -71,11 +71,6 @@ export default async function LibraryNews({ games }: { games: PlayingGame[] }) {
               src={`https://cdn.cloudflare.steamstatic.com/steam/apps/${game.steamAppId}/capsule_sm_120.jpg`}
               alt={game.name}
               className="h-12 w-20 rounded object-cover flex-shrink-0 bg-slate-800 mt-0.5"
-              onError={(e) => {
-                const img = e.currentTarget as HTMLImageElement;
-                const fb = `https://cdn.cloudflare.steamstatic.com/steam/apps/${game.steamAppId}/header.jpg`;
-                if (img.src !== fb) { img.src = fb; } else { img.style.display = "none"; }
-              }}
             />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-slate-100 line-clamp-2 group-hover:text-white transition-colors leading-snug">
