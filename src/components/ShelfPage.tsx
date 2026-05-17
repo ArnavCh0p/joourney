@@ -29,6 +29,9 @@ type Size    = "S" | "M" | "L";
 type SortKey = "updated" | "name" | "playtime-desc" | "playtime-asc" | "status" | "rating-desc";
 type GroupBy = "none" | "status" | "genre" | "tag";
 
+const BULK_SP_ONLY = new Set(["PLAYING", "REPLAYING", "COMPLETED", "ABANDONED", "WANT_TO_PLAY"]);
+const BULK_MP_ONLY = new Set(["MULTIPLAYER_ACTIVE", "MULTIPLAYER_ON_BREAK", "MULTIPLAYER_RETIRED"]);
+
 const GRID_COLS: Record<Size, string> = {
   S: "grid-cols-3 sm:grid-cols-4 lg:grid-cols-6",
   M: "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4",
@@ -178,6 +181,22 @@ export default function ShelfPage({ games, initialFilter, initialTag, totalHours
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [editMode]);
+
+  const bulkMismatchWarning = useMemo(() => {
+    if (!bulkStatus || selectedIds.size === 0) return null;
+    if (!BULK_SP_ONLY.has(bulkStatus) && !BULK_MP_ONLY.has(bulkStatus)) return null;
+    let skipped = 0;
+    for (const id of selectedIds) {
+      const g = games.find((g) => g.id === id);
+      if (!g) continue;
+      const effectiveIsMP = bulkType === "multi" ? true : bulkType === "single" ? false : g.isMultiplayer;
+      if (BULK_SP_ONLY.has(bulkStatus) && effectiveIsMP) skipped++;
+      if (BULK_MP_ONLY.has(bulkStatus) && !effectiveIsMP) skipped++;
+    }
+    if (skipped === 0) return null;
+    const kind = BULK_SP_ONLY.has(bulkStatus) ? "multiplayer" : "single-player";
+    return `${skipped} ${kind} game${skipped === 1 ? "" : "s"} will be skipped`;
+  }, [bulkStatus, bulkType, selectedIds, games]);
 
   async function handleImport() {
     setImporting(true);
@@ -661,6 +680,9 @@ export default function ShelfPage({ games, initialFilter, initialTag, totalHours
               </optgroup>
             </select>
 
+            {bulkMismatchWarning && (
+              <span className="text-xs text-amber-400">{bulkMismatchWarning}</span>
+            )}
             <button
               onClick={applyBulk}
               disabled={selectedIds.size === 0 || bulkSaving || (!bulkStatus && bulkType === "none")}
