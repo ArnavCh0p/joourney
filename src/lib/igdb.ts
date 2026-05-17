@@ -58,10 +58,12 @@ export async function searchIGDB(query: string, limit = 8): Promise<IGDBResult[]
   const token = await getAccessToken();
   // Strip quotes to prevent IGDB query injection
   const safe = query.replace(/"/g, "").slice(0, 100);
-  // Filter out DLC (1), expansions (2), and bundles (3) — they clutter results
-  // for popular titles. Request `follows` so we can sort by popularity after the
-  // response: IGDB's `search` keyword ignores server-side `sort`, so we sort locally.
-  const body = `fields name,cover.url,platforms.name,follows; search "${safe}"; where category != 1 & category != 2 & category != 3; limit ${limit};`;
+  // Filter out DLC (1), expansions (2), and bundles (3) — they clutter results.
+  // Also allow category = null: IGDB leaves the field unpopulated on many entries,
+  // and a bare `category != 1` filter silently drops those games entirely.
+  // Request `follows` so we can sort by popularity locally — IGDB's `search`
+  // keyword ignores server-side `sort`.
+  const body = `fields name,cover.url,platforms.name,follows; search "${safe}"; where category = null | (category != 1 & category != 2 & category != 3); limit ${limit};`;
 
   const res = await fetch(IGDB_GAMES_URL, {
     method: "POST",
