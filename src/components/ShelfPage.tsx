@@ -29,6 +29,9 @@ type Size    = "S" | "M" | "L";
 type SortKey = "updated" | "name" | "playtime-desc" | "playtime-asc" | "status" | "rating-desc";
 type GroupBy = "none" | "status" | "genre" | "tag";
 
+const BULK_SP_ONLY = new Set(["PLAYING", "REPLAYING", "COMPLETED", "ABANDONED", "WANT_TO_PLAY"]);
+const BULK_MP_ONLY = new Set(["MULTIPLAYER_ACTIVE", "MULTIPLAYER_ON_BREAK", "MULTIPLAYER_RETIRED"]);
+
 const GRID_COLS: Record<Size, string> = {
   S: "grid-cols-3 sm:grid-cols-4 lg:grid-cols-6",
   M: "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4",
@@ -74,12 +77,12 @@ function sortGames(games: ShelfGame[], key: SortKey): ShelfGame[] {
   });
 }
 
-export default function ShelfPage({ games, initialFilter, totalHours: totalHoursProp }: { games: ShelfGame[]; initialFilter?: string; totalHours?: number }) {
+export default function ShelfPage({ games, initialFilter, initialTag, totalHours: totalHoursProp, lists }: { games: ShelfGame[]; initialFilter?: string; initialTag?: string; totalHours?: number; lists?: { id: string; name: string }[] }) {
   const router = useRouter();
 
   const [activeFilter, setActiveFilter]     = useState(initialFilter ?? "All");
   const [activeGenres, setActiveGenres]     = useState<string[]>([]);
-  const [activeUserTag, setActiveUserTag]   = useState<string | null>(null);
+  const [activeUserTag, setActiveUserTag]   = useState<string | null>(initialTag ?? null);
   const [groupBy, setGroupBy]               = useState<GroupBy>("none");
   const [splitPlaying, setSplitPlaying]     = useState(false);
   const [splitMp, setSplitMp]               = useState(true);
@@ -97,6 +100,9 @@ export default function ShelfPage({ games, initialFilter, totalHours: totalHours
   const [bulkStatus, setBulkStatus]         = useState("");
   const [bulkType, setBulkType]             = useState<"single" | "none" | "multi">("none");
   const [bulkSaving, setBulkSaving]         = useState(false);
+  const [bulkListId, setBulkListId]         = useState("");
+  const [addingToList, setAddingToList]     = useState(false);
+  const [listAddMsg, setListAddMsg]         = useState<string | null>(null);
 
   useEffect(() => {
     const v  = localStorage.getItem("shelf-view")         as View    | null;
@@ -126,7 +132,7 @@ export default function ShelfPage({ games, initialFilter, totalHours: totalHours
   }
 
   function enterEditMode() { setEditMode(true);  setSelectedIds(new Set()); }
-  function exitEditMode()  { setEditMode(false); setSelectedIds(new Set()); setBulkStatus(""); setBulkType("none"); }
+  function exitEditMode()  { setEditMode(false); setSelectedIds(new Set()); setBulkStatus(""); setBulkType("none"); setBulkListId(""); setListAddMsg(null); }
 
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
@@ -152,11 +158,45 @@ export default function ShelfPage({ games, initialFilter, totalHours: totalHours
     router.refresh();
   }
 
+  async function addToList() {
+    if (!bulkListId || selectedIds.size === 0) return;
+    setAddingToList(true);
+    setListAddMsg(null);
+    try {
+      await fetch(`/api/lists/${bulkListId}/entries`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shelfEntryIds: [...selectedIds] }),
+      });
+      const listName = lists?.find((l) => l.id === bulkListId)?.name ?? "list";
+      setListAddMsg(`Added ${selectedIds.size} game${selectedIds.size === 1 ? "" : "s"} to "${listName}"`);
+      setBulkListId("");
+    } finally {
+      setAddingToList(false);
+    }
+  }
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) { if (e.key === "Escape" && editMode) exitEditMode(); }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [editMode]);
+
+  const bulkMismatchWarning = useMemo(() => {
+    if (!bulkStatus || selectedIds.size === 0) return null;
+    if (!BULK_SP_ONLY.has(bulkStatus) && !BULK_MP_ONLY.has(bulkStatus)) return null;
+    let skipped = 0;
+    for (const id of selectedIds) {
+      const g = games.find((g) => g.id === id);
+      if (!g) continue;
+      const effectiveIsMP = bulkType === "multi" ? true : bulkType === "single" ? false : g.isMultiplayer;
+      if (BULK_SP_ONLY.has(bulkStatus) && effectiveIsMP) skipped++;
+      if (BULK_MP_ONLY.has(bulkStatus) && !effectiveIsMP) skipped++;
+    }
+    if (skipped === 0) return null;
+    const kind = BULK_SP_ONLY.has(bulkStatus) ? "multiplayer" : "single-player";
+    return `${skipped} ${kind} game${skipped === 1 ? "" : "s"} will be skipped`;
+  }, [bulkStatus, bulkType, selectedIds, games]);
 
   async function handleImport() {
     setImporting(true);
@@ -191,6 +231,7 @@ export default function ShelfPage({ games, initialFilter, totalHours: totalHours
 
   const visibleGames = useMemo(() => {
     const filtered = games.filter((g) => {
+      if (activeFilter === "Hidden") return g.isHidden;
       if (g.isHidden) return false;
       const statusOk = activeFilter === "All"
         || (activeFilter === "Currently Playing" ? (g.status === "Playing" || g.status === "Replaying")
@@ -208,11 +249,21 @@ export default function ShelfPage({ games, initialFilter, totalHours: totalHours
     if (groupBy === "none") return null;
     const map: Record<string, ShelfGame[]> = {};
     for (const g of visibleGames) {
-      let key: string;
-      if (groupBy === "status")     key = g.status;
-      else if (groupBy === "genre") key = g.genres[0] ?? "Untagged";
-      else                          key = g.tags[0]   ?? "Untagged";
-      (map[key] ??= []).push(g);
+      if (groupBy === "status") {
+        (map[g.status] ??= []).push(g);
+      } else if (groupBy === "genre") {
+        if (g.genres.length === 0) {
+          (map["Untagged"] ??= []).push(g);
+        } else {
+          for (const genre of g.genres) (map[genre] ??= []).push(g);
+        }
+      } else {
+        if (g.tags.length === 0) {
+          (map["Untagged"] ??= []).push(g);
+        } else {
+          for (const tag of g.tags) (map[tag] ??= []).push(g);
+        }
+      }
     }
     const entries = Object.entries(map);
     if (groupBy === "status") {
@@ -578,6 +629,29 @@ export default function ShelfPage({ games, initialFilter, totalHours: totalHours
             Select all
           </button>
 
+          {/* Add to list */}
+          {lists && lists.length > 0 && (
+            <>
+              <div className="h-4 w-px bg-slate-600 flex-shrink-0" />
+              <select
+                value={bulkListId}
+                onChange={(e) => { setBulkListId(e.target.value); setListAddMsg(null); }}
+                className="rounded-md border border-slate-600 bg-slate-700 px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none cursor-pointer"
+              >
+                <option value="">Add to list…</option>
+                {lists.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+              </select>
+              <button
+                onClick={addToList}
+                disabled={!bulkListId || selectedIds.size === 0 || addingToList}
+                className="rounded-md border border-slate-600 px-3 py-1.5 text-xs text-slate-300 hover:text-slate-100 hover:border-slate-400 disabled:opacity-40 transition-colors"
+              >
+                {addingToList ? "Adding…" : "Add"}
+              </button>
+              {listAddMsg && <span className="text-xs text-emerald-400">{listAddMsg}</span>}
+            </>
+          )}
+
           <div className="ml-auto flex flex-wrap items-center gap-2">
             {/* Game type toggle — single / no change / multiplayer */}
             <div className="flex overflow-hidden rounded-md border border-slate-600 text-xs font-medium">
@@ -617,6 +691,9 @@ export default function ShelfPage({ games, initialFilter, totalHours: totalHours
               </optgroup>
             </select>
 
+            {bulkMismatchWarning && (
+              <span className="text-xs text-amber-400">{bulkMismatchWarning}</span>
+            )}
             <button
               onClick={applyBulk}
               disabled={selectedIds.size === 0 || bulkSaving || (!bulkStatus && bulkType === "none")}

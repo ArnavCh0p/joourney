@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Joourney",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "identifier": "com.joourney.app",
   "build": {
     "frontendDist": "https://joourney-seven.vercel.app/",
@@ -13,9 +13,12 @@
         "title": "Joourney",
         "width": 1280,
         "height": 800,
+        "minWidth": 900,
+        "minHeight": 600,
         "resizable": true,
         "fullscreen": false,
         "decorations": false,
+        "center": true,
         "backgroundColor": "#0f172a"
       }
     ],

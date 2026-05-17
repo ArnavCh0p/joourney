@@ -90,6 +90,7 @@ export default async function Home() {
         AND s."autoDetected" = true
         AND s.notes IS NULL
         AND s.date > NOW() - INTERVAL '3 days'
+        AND e."isHidden" = false
       ORDER BY s.date DESC
       LIMIT 8
     `.catch(() => [] as Array<{
@@ -97,7 +98,7 @@ export default async function Home() {
       date: Date; gameName: string; steamAppId: number;
     }>),
     prisma.session.findMany({
-      where: { userId: user.id, notes: { not: null } },
+      where: { userId: user.id, notes: { not: null }, shelfEntry: { isHidden: false } },
       orderBy: { date: "desc" },
       take: 6,
       include: { shelfEntry: { select: { id: true, gameName: true, steamAppId: true } } },

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type TagEntry = { tag: string; count: number };
 
@@ -135,7 +136,12 @@ export default function UserTagsManager({ initialTags }: { initialTags: TagEntry
             </>
           ) : (
             <>
-              <span className="flex-1 text-xs text-slate-300 capitalize">{tag}</span>
+              <Link
+                href={`/library?tag=${encodeURIComponent(tag)}`}
+                className="flex-1 text-xs text-slate-300 capitalize hover:text-white transition-colors"
+              >
+                {tag}
+              </Link>
               <span className="text-[10px] text-slate-600 flex-shrink-0">
                 {count} {count === 1 ? "game" : "games"}
               </span>

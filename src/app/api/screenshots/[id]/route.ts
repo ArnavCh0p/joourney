@@ -18,6 +18,7 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  try {
   const user = await resolveUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -44,4 +45,8 @@ export async function DELETE(
   await prisma.$executeRaw`DELETE FROM "Screenshot" WHERE id = ${id}`;
 
   return new NextResponse(null, { status: 204 });
+  } catch (err) {
+    console.error("[DELETE /api/screenshots/:id]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

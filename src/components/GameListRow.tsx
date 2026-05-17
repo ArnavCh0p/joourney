@@ -10,9 +10,12 @@ function initials(name: string): string {
 }
 
 export default function GameListRow({ game }: { game: ShelfGame }) {
-  // Priority: stored coverUrl (IGDB) → Steam CDN → initials placeholder
-  const thumbUrl = game.coverUrl
+  // Priority: stored coverUrl (IGDB) → Steam capsule → Steam header → initials placeholder
+  const thumbUrl    = game.coverUrl
     ?? (game.steamAppId ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${game.steamAppId}/capsule_sm_120.jpg` : null);
+  const fallbackUrl = game.steamAppId
+    ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${game.steamAppId}/header.jpg`
+    : null;
   const visibleTags = game.tags.slice(0, 3);
   const extra       = Math.max(0, game.tags.length - 3);
 
@@ -24,7 +27,10 @@ export default function GameListRow({ game }: { game: ShelfGame }) {
             src={thumbUrl}
             alt={game.name}
             className="h-full w-full object-cover"
-            onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+            onError={(e) => {
+              const img = e.currentTarget as HTMLImageElement;
+              if (fallbackUrl && img.src !== fallbackUrl) { img.src = fallbackUrl; } else { img.style.display = "none"; }
+            }}
           />
         ) : (
           <span className="text-[10px] font-bold text-zinc-500 select-none">{initials(game.name)}</span>

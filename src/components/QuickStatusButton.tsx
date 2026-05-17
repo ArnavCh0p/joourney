@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 const SP_STATUSES = [
@@ -16,6 +16,7 @@ const MP_STATUSES = [
   { enum: "MULTIPLAYER_ACTIVE",   label: "Active",    dot: "bg-blue-500"   },
   { enum: "MULTIPLAYER_ON_BREAK", label: "On Break",  dot: "bg-amber-500"  },
   { enum: "MULTIPLAYER_RETIRED",  label: "Retired",   dot: "bg-slate-600"  },
+  { enum: "UNTRACKED",            label: "Untracked", dot: "bg-slate-400"  },
 ];
 
 // Map old/new display labels to their dot color for the button face
@@ -44,9 +45,22 @@ export default function QuickStatusButton({ entryId, currentStatus, isMultiplaye
   const [open, setOpen]     = useState(false);
   const [status, setStatus] = useState(currentStatus);
   const [saving, setSaving] = useState(false);
+  const containerRef        = useRef<HTMLDivElement>(null);
 
   const dot = DOT_BY_LABEL[status] ?? "bg-slate-400";
   const options = isMultiplayer ? MP_STATUSES : SP_STATUSES;
+
+  // Close on outside mousedown so other dropdowns can open in the same click
+  useEffect(() => {
+    if (!open) return;
+    function handleOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [open]);
 
   function toggle(e: React.MouseEvent) {
     e.preventDefault();
@@ -54,13 +68,7 @@ export default function QuickStatusButton({ entryId, currentStatus, isMultiplaye
     setOpen((v) => !v);
   }
 
-  function dismiss(e: React.MouseEvent) {
-    e.preventDefault();
-    e.stopPropagation();
-    setOpen(false);
-  }
-
-  async function pick(e: React.MouseEvent, chosen: typeof SP_STATUSES[number]) {
+  async function pick(e: React.MouseEvent, chosen: (typeof SP_STATUSES)[number]) {
     e.preventDefault();
     e.stopPropagation();
     setOpen(false);
@@ -82,7 +90,7 @@ export default function QuickStatusButton({ entryId, currentStatus, isMultiplaye
   const isDark = variant === "dark";
 
   return (
-    <div className="relative" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+    <div ref={containerRef} className="relative" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
       <button
         onClick={toggle}
         disabled={saving}
@@ -99,9 +107,7 @@ export default function QuickStatusButton({ entryId, currentStatus, isMultiplaye
       </button>
 
       {open && (
-        <>
-          <div className="fixed inset-0 z-20" onClick={dismiss} />
-          <div className={`absolute bottom-full left-0 mb-1.5 z-30 min-w-[140px] rounded-lg border py-1 shadow-xl ${
+        <div className={`absolute bottom-full left-0 mb-1.5 z-30 min-w-[140px] rounded-lg border py-1 shadow-xl ${
             isDark
               ? "border-slate-700 bg-slate-800"
               : "border-slate-200 bg-white"
@@ -119,8 +125,7 @@ export default function QuickStatusButton({ entryId, currentStatus, isMultiplaye
                 {s.label === status && <span className={`ml-auto ${isDark ? "text-slate-500" : "text-slate-400"}`}>✓</span>}
               </button>
             ))}
-          </div>
-        </>
+        </div>
       )}
     </div>
   );

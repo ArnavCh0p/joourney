@@ -23,6 +23,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  try {
   const user = await resolveUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -30,15 +31,36 @@ export async function POST(
   if (!await resolveList(listId, user.id))
     return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  let body: { shelfEntryId?: string };
+  let body: { shelfEntryId?: string; shelfEntryIds?: string[] };
   try { body = await req.json(); } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
+  // Bulk add — array of IDs
+  if (Array.isArray(body.shelfEntryIds)) {
+    const ids = body.shelfEntryIds;
+    // Confirm all entries belong to this user
+    const entries = await prisma.shelfEntry.findMany({
+      where: { id: { in: ids }, userId: user.id },
+      select: { id: true },
+    });
+    const validIds = new Set(entries.map((e) => e.id));
+    await Promise.all(
+      ids.filter((id) => validIds.has(id)).map((shelfEntryId) =>
+        prisma.listEntry.upsert({
+          where: { listId_shelfEntryId: { listId, shelfEntryId } },
+          update: {},
+          create: { listId, shelfEntryId },
+        })
+      )
+    );
+    return NextResponse.json({ added: validIds.size }, { status: 201 });
+  }
+
+  // Single add — existing behaviour
   if (!body.shelfEntryId)
     return NextResponse.json({ error: "shelfEntryId required" }, { status: 400 });
 
-  // Confirm the shelf entry belongs to this user
   const entry = await prisma.shelfEntry.findUnique({
     where: { id: body.shelfEntryId },
     select: { userId: true },
@@ -53,12 +75,17 @@ export async function POST(
   });
 
   return NextResponse.json(listEntry, { status: 201 });
+  } catch (err) {
+    console.error("[POST /api/lists/:id/entries]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  try {
   const user = await resolveUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -86,12 +113,17 @@ export async function PATCH(
   );
 
   return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("[PATCH /api/lists/:id/entries]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  try {
   const user = await resolveUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -112,4 +144,8 @@ export async function DELETE(
   });
 
   return new NextResponse(null, { status: 204 });
+  } catch (err) {
+    console.error("[DELETE /api/lists/:id/entries]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

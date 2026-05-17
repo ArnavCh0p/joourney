@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 const SINGLEPLAYER_STATUSES = [
@@ -16,6 +16,7 @@ const MULTIPLAYER_STATUSES = [
   { value: "MULTIPLAYER_ACTIVE",   label: "Active"    },
   { value: "MULTIPLAYER_ON_BREAK", label: "On Break"  },
   { value: "MULTIPLAYER_RETIRED",  label: "Retired"   },
+  { value: "UNTRACKED",            label: "Untracked" },
 ];
 
 const MULTIPLAYER_STATUS_VALUES = new Set([
@@ -34,49 +35,66 @@ export default function EditGamePanel({
   entryId, initialStatus, initialReview, initialRating, initialIsMultiplayer,
 }: Props) {
   const router = useRouter();
-  const normalizedStatus = initialStatus === "BACKLOG" ? "UNTRACKED"
+  const normalizedStatus = initialStatus === "BACKLOG"     ? "UNTRACKED"
     : initialStatus === "MULTIPLAYER" ? "MULTIPLAYER_ACTIVE"
     : initialStatus;
 
   const [isMultiplayer, setIsMultiplayer] = useState(initialIsMultiplayer);
-  const [status, setStatus]   = useState(normalizedStatus);
-  const [review, setReview]   = useState(initialReview ?? "");
-  const [rating, setRating]   = useState<number | null>(initialRating);
-  const [saving, setSaving]   = useState(false);
-  const [saved, setSaved]     = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
+  const [status, setStatus] = useState(normalizedStatus);
+  const [review, setReview] = useState(initialReview ?? "");
+  const [rating, setRating] = useState<number | null>(initialRating);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
-  function handleToggleMultiplayer(newValue: boolean) {
-    setIsMultiplayer(newValue);
-    setSaved(false);
-    if (newValue && !MULTIPLAYER_STATUS_VALUES.has(status)) {
-      setStatus("MULTIPLAYER_ACTIVE");
-    } else if (!newValue && MULTIPLAYER_STATUS_VALUES.has(status)) {
-      setStatus("UNTRACKED");
-    }
-  }
+  const notesTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  async function handleSave() {
-    setSaving(true);
-    setErrorMsg("");
-    setSaved(false);
+  async function save(patch: Record<string, unknown>, withRefresh = false) {
+    if (savedTimer.current) clearTimeout(savedTimer.current);
+    setSaveState("saving");
     try {
       const res = await fetch(`/api/games/${entryId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status, review, rating, isMultiplayer }),
+        body: JSON.stringify(patch),
       });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.error ?? `Request failed (${res.status})`);
-      }
-      setSaved(true);
-      router.refresh();
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setSaving(false);
+      if (!res.ok) throw new Error();
+      setSaveState("saved");
+      if (withRefresh) router.refresh();
+      savedTimer.current = setTimeout(() => setSaveState("idle"), 1500);
+    } catch {
+      setSaveState("error");
     }
+  }
+
+  function handleToggleMultiplayer(newValue: boolean) {
+    setIsMultiplayer(newValue);
+    let newStatus = status;
+    if (newValue && !MULTIPLAYER_STATUS_VALUES.has(status)) {
+      newStatus = "MULTIPLAYER_ACTIVE";
+      setStatus(newStatus);
+    } else if (!newValue && MULTIPLAYER_STATUS_VALUES.has(status)) {
+      newStatus = "UNTRACKED";
+      setStatus(newStatus);
+    }
+    save({ isMultiplayer: newValue, status: newStatus }, true);
+  }
+
+  function handleStatusChange(newStatus: string) {
+    setStatus(newStatus);
+    save({ status: newStatus }, true);
+  }
+
+  function handleRatingClick(n: number) {
+    const newRating = rating === n ? null : n;
+    setRating(newRating);
+    save({ rating: newRating });
+  }
+
+  function handleReviewChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    const val = e.target.value;
+    setReview(val);
+    if (notesTimer.current) clearTimeout(notesTimer.current);
+    notesTimer.current = setTimeout(() => save({ review: val }), 600);
   }
 
   const statusOptions = isMultiplayer ? MULTIPLAYER_STATUSES : SINGLEPLAYER_STATUSES;
@@ -113,7 +131,7 @@ export default function EditGamePanel({
         <label className="block text-xs font-medium text-slate-400">Status</label>
         <select
           value={status}
-          onChange={(e) => { setStatus(e.target.value); setSaved(false); }}
+          onChange={(e) => handleStatusChange(e.target.value)}
           className="w-full appearance-none rounded-md border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-slate-100 focus:border-slate-400 focus:outline-none"
         >
           {statusOptions.map((s) => (
@@ -125,12 +143,12 @@ export default function EditGamePanel({
       {/* Rating */}
       <div className="space-y-1.5">
         <label className="block text-xs font-medium text-slate-400">Rating</label>
-        <div className="flex gap-1">
+        <div className="flex gap-1 items-center">
           {[1, 2, 3, 4, 5].map((n) => (
             <button
               key={n}
               type="button"
-              onClick={() => { setRating(rating === n ? null : n); setSaved(false); }}
+              onClick={() => handleRatingClick(n)}
               className={`text-xl leading-none transition-colors ${
                 n <= (rating ?? 0) ? "text-amber-400" : "text-slate-600 hover:text-slate-400"
               }`}
@@ -141,7 +159,7 @@ export default function EditGamePanel({
           {rating !== null && (
             <button
               type="button"
-              onClick={() => { setRating(null); setSaved(false); }}
+              onClick={() => { setRating(null); save({ rating: null }); }}
               className="ml-1 text-xs text-slate-500 hover:text-slate-300 transition-colors"
             >
               clear
@@ -155,22 +173,17 @@ export default function EditGamePanel({
         <label className="block text-xs font-medium text-slate-400">Overall notes</label>
         <textarea
           value={review}
-          onChange={(e) => { setReview(e.target.value); setSaved(false); }}
+          onChange={handleReviewChange}
           placeholder="Verdict, overall impression…"
           className="w-full min-h-[80px] resize-none rounded-md border border-slate-600 bg-slate-700 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-slate-400 focus:outline-none"
         />
       </div>
 
-      <div className="flex items-center gap-3">
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="rounded-md border border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-300 hover:bg-slate-700 hover:text-slate-100 disabled:opacity-40 transition-colors"
-        >
-          {saving ? "Saving…" : "Save"}
-        </button>
-        {saved    && <span className="text-xs text-slate-500">Saved</span>}
-        {errorMsg && <span className="text-xs text-rose-400">{errorMsg}</span>}
+      {/* Auto-save indicator */}
+      <div className="h-4">
+        {saveState === "saving" && <span className="text-xs text-slate-600">Saving…</span>}
+        {saveState === "saved"  && <span className="text-xs text-slate-500">Saved</span>}
+        {saveState === "error"  && <span className="text-xs text-rose-400">Failed to save</span>}
       </div>
     </div>
   );

@@ -32,6 +32,7 @@ async function fetchSteamGenres(steamAppId: number): Promise<string[]> {
 }
 
 export async function POST() {
+  try {
   const user = await resolveUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -167,4 +168,8 @@ export async function POST() {
   }
 
   return NextResponse.json({ imported: games.length, tagged, sessionsCreated });
+  } catch (err) {
+    console.error("[POST /api/import-library]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

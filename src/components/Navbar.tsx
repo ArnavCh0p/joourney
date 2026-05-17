@@ -4,6 +4,7 @@ import { useSession, signOut } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import FeedbackModal from "./FeedbackModal";
 
 function NavLink({ href, label }: { href: string; label: string }) {
   const pathname = usePathname();
@@ -20,71 +21,6 @@ function NavLink({ href, label }: { href: string; label: string }) {
   );
 }
 
-function WindowControls() {
-  const [isTauri, setIsTauri] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  const [isMaximized, setIsMaximized] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    const tauri =
-      typeof window !== "undefined" &&
-      (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ !== undefined;
-    setIsTauri(tauri);
-    if (!tauri) return;
-    (async () => {
-      const { getCurrentWindow } = await import("@tauri-apps/api/window");
-      const win = getCurrentWindow();
-      setIsMaximized(await win.isMaximized());
-      await win.onResized(async () => {
-        setIsMaximized(await win.isMaximized());
-      });
-    })();
-  }, []);
-
-  if (!mounted || !isTauri) return null;
-
-  async function minimize() {
-    const { getCurrentWindow } = await import("@tauri-apps/api/window");
-    await getCurrentWindow().minimize();
-  }
-  async function toggleMaximize() {
-    const { getCurrentWindow } = await import("@tauri-apps/api/window");
-    const win = getCurrentWindow();
-    const fullscreen = await win.isFullscreen();
-    if (fullscreen) await win.setFullscreen(false);
-    else await win.toggleMaximize();
-  }
-  async function closeWindow() {
-    const { getCurrentWindow } = await import("@tauri-apps/api/window");
-    await getCurrentWindow().close();
-  }
-
-  return (
-    <div className="flex items-center gap-0.5 ml-2 pl-2 border-l border-slate-700">
-      <button onClick={minimize} aria-label="Minimize"
-        className="h-6 w-7 flex items-center justify-center text-slate-500 hover:text-slate-300 hover:bg-slate-700 rounded transition-colors text-base leading-none">
-        −
-      </button>
-      <button onClick={toggleMaximize} aria-label={isMaximized ? "Restore" : "Maximize"}
-        className="h-6 w-7 flex items-center justify-center text-slate-500 hover:text-slate-300 hover:bg-slate-700 rounded transition-colors">
-        {isMaximized ? (
-          <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" strokeWidth="1.2">
-            <rect x="2" y="0.6" width="6.4" height="6.4" /><path d="M0.6 2.6 L0.6 8.4 L6.4 8.4" />
-          </svg>
-        ) : (
-          <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" strokeWidth="1.2">
-            <rect x="0.6" y="0.6" width="7.8" height="7.8" />
-          </svg>
-        )}
-      </button>
-      <button onClick={closeWindow} aria-label="Close"
-        className="h-6 w-7 flex items-center justify-center text-slate-500 hover:text-white hover:bg-rose-600 rounded transition-colors text-base leading-none">
-        ×
-      </button>
-    </div>
-  );
-}
 
 export default function Navbar() {
   const { data: session, status } = useSession();
@@ -92,7 +28,6 @@ export default function Navbar() {
 
   return (
     <nav
-      data-tauri-drag-region
       className="border-b border-slate-800 bg-slate-900/95 backdrop-blur-sm sticky top-0 z-50 px-4"
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between h-14">
@@ -124,6 +59,7 @@ export default function Navbar() {
 
           {isAuthed && (
             <div className="flex items-center gap-3">
+              <FeedbackModal />
               {session.user?.image && (
                 <img
                   src={session.user.image}
@@ -149,7 +85,6 @@ export default function Navbar() {
             </button>
           )}
 
-          <WindowControls />
         </div>
 
       </div>

@@ -17,6 +17,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  try {
   const user = await resolveUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -87,12 +88,17 @@ export async function PATCH(
   }
 
   return NextResponse.json({ id, notes: trimmedNotes, durationMinutes: dur, runId: runId ?? null, music: trimmedMusic ?? null });
+  } catch (err) {
+    console.error("[PATCH /api/sessions/:id]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  try {
   const user = await resolveUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -109,4 +115,8 @@ export async function DELETE(
 
   await prisma.session.delete({ where: { id } });
   return new NextResponse(null, { status: 204 });
+  } catch (err) {
+    console.error("[DELETE /api/sessions/:id]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

@@ -31,6 +31,7 @@ async function writeDefinedTags(userId: string, tags: string[]): Promise<void> {
 }
 
 export async function GET() {
+  try {
   const user = await resolveUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -45,9 +46,14 @@ export async function GET() {
   }
 
   return NextResponse.json(Array.from(tagSet).sort());
+  } catch (err) {
+    console.error("[GET /api/user/tags]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
+  try {
   const user = await resolveUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -61,9 +67,14 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ ok: true }, { status: 201 });
+  } catch (err) {
+    console.error("[POST /api/user/tags]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 export async function PATCH(req: NextRequest) {
+  try {
   const user = await resolveUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -96,9 +107,14 @@ export async function PATCH(req: NextRequest) {
   ]);
 
   return NextResponse.json({ updated: entries.length });
+  } catch (err) {
+    console.error("[PATCH /api/user/tags]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 export async function DELETE(req: NextRequest) {
+  try {
   const user = await resolveUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -126,4 +142,8 @@ export async function DELETE(req: NextRequest) {
   ]);
 
   return NextResponse.json({ removed: entries.length });
+  } catch (err) {
+    console.error("[DELETE /api/user/tags]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

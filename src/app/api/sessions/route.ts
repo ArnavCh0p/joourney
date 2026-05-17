@@ -17,6 +17,7 @@ async function resolveUser() {
 }
 
 export async function POST(req: NextRequest) {
+  try {
   const user = await resolveUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -81,9 +82,14 @@ export async function POST(req: NextRequest) {
   `;
 
   return NextResponse.json({ id: newId }, { status: 201 });
+  } catch (err) {
+    console.error("[POST /api/sessions]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 export async function GET(req: NextRequest) {
+  try {
   const user = await resolveUser();
   if (!user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -113,4 +119,8 @@ export async function GET(req: NextRequest) {
   });
 
   return NextResponse.json(sessions);
+  } catch (err) {
+    console.error("[GET /api/sessions]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

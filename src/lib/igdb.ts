@@ -35,32 +35,22 @@ async function getAccessToken(): Promise<string> {
   return cachedToken.value;
 }
 
-// Map IGDB platform names to Joourney's platform enum values
-function mapPlatform(platforms: { name: string }[]): string {
-  for (const { name } of platforms) {
-    const n = name.toLowerCase();
-    if (n.includes("playstation"))                                            return "PlayStation";
-    if (n.includes("xbox"))                                                   return "Xbox";
-    if (n.includes("nintendo") || n.includes("switch") || n.includes("wii")) return "Nintendo";
-    if (n.includes("pc") || n.includes("windows") || n.includes("mac") || n.includes("linux")) return "PC";
-  }
-  return "Other";
-}
-
 export type IGDBResult = {
   igdbId:   number;
   name:     string;
   coverUrl: string | null;
-  platform: string;
 };
 
 export async function searchIGDB(query: string, limit = 8): Promise<IGDBResult[]> {
   const token = await getAccessToken();
   // Strip quotes to prevent IGDB query injection
   const safe = query.replace(/"/g, "").slice(0, 100);
-  // No where clause — the category field is often unpopulated in IGDB, so any
-  // category or version_parent filter silently drops most results.
-  const body = `fields name,cover.url,platforms.name; search "${safe}"; limit ${limit};`;
+  // Filter out DLC (1), expansions (2), and bundles (3) — they clutter results.
+  // Also allow category = null: IGDB leaves the field unpopulated on many entries,
+  // and a bare `category != 1` filter silently drops those games entirely.
+  // Request `follows` so we can sort by popularity locally — IGDB's `search`
+  // keyword ignores server-side `sort`.
+  const body = `fields name,cover.url,follows; search "${safe}"; where category = null | (category != 1 & category != 2 & category != 3); limit ${limit};`;
 
   const res = await fetch(IGDB_GAMES_URL, {
     method: "POST",
@@ -79,15 +69,18 @@ export async function searchIGDB(query: string, limit = 8): Promise<IGDBResult[]
     id: number;
     name: string;
     cover?: { url: string };
-    platforms?: { name: string }[];
+    follows?: number;
   }>;
-  return games.map((g) => ({
-    igdbId:   g.id,
-    name:     g.name,
-    // IGDB returns protocol-relative URLs (//images.igdb.com/...); use t_cover_big (264×374)
-    coverUrl: g.cover?.url
-      ? `https:${g.cover.url.replace("t_thumb", "t_cover_big")}`
-      : null,
-    platform: g.platforms ? mapPlatform(g.platforms) : "Other",
-  }));
+  // Sort by follow count so canonical/popular games (e.g. Valorant, Fortnite)
+  // surface first — IGDB text-relevance alone buries them behind spin-offs.
+  return games
+    .sort((a, b) => (b.follows ?? 0) - (a.follows ?? 0))
+    .map((g) => ({
+      igdbId:   g.id,
+      name:     g.name,
+      // IGDB returns protocol-relative URLs (//images.igdb.com/...); use t_cover_big (264×374)
+      coverUrl: g.cover?.url
+        ? `https:${g.cover.url.replace("t_thumb", "t_cover_big")}`
+        : null,
+    }));
 }

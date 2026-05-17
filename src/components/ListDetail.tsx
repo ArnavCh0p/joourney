@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import ViewToggle from "./ViewToggle";
+import GameCard from "./GameCard";
 
 type Game = {
   shelfEntryId: string;
@@ -9,11 +11,16 @@ type Game = {
   rank: number | null;
   steamAppId: number;
   gameName: string;
+  coverUrl: string | null;
+  platform: string;
   status: string;
   rating: number | null;
   playtimeMinutes: number;
   tags: string[];
+  isMultiplayer: boolean;
 };
+
+type View = "grid" | "list";
 
 type SortBy = "added" | "name" | "rating" | "playtime" | "rank";
 
@@ -54,15 +61,49 @@ const SORT_OPTIONS: { value: SortBy; label: string }[] = [
 export default function ListDetail({
   listId,
   initialGames,
+  initialDescription,
 }: {
   listId: string;
   initialGames: Game[];
+  initialDescription: string | null;
 }) {
   const [games, setGames]       = useState<Game[]>(initialGames);
   const [sortBy, setSortBy]     = useState<SortBy>("added");
   const [saving, setSaving]     = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [rankInput, setRankInput] = useState("");
+
+  const [description, setDescription]         = useState(initialDescription ?? "");
+  const [editingDesc, setEditingDesc]         = useState(false);
+  const [descInput, setDescInput]             = useState(initialDescription ?? "");
+  const [savingDesc, setSavingDesc]           = useState(false);
+  const [view, setView]                       = useState<View>("list");
+
+  useEffect(() => {
+    const stored = localStorage.getItem("list-view") as View | null;
+    if (stored === "grid" || stored === "list") setView(stored);
+  }, []);
+
+  function handleViewChange(v: View) {
+    setView(v);
+    localStorage.setItem("list-view", v);
+  }
+
+  async function saveDescription() {
+    setSavingDesc(true);
+    const val = descInput.trim() || null;
+    try {
+      await fetch(`/api/lists/${listId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: val }),
+      });
+      setDescription(val ?? "");
+    } finally {
+      setSavingDesc(false);
+      setEditingDesc(false);
+    }
+  }
 
   const sorted = useMemo<Game[]>(() => {
     const arr = [...games];
@@ -150,17 +191,66 @@ export default function ListDetail({
     }
   }
 
+  const descriptionBlock = editingDesc ? (
+    <div className="flex flex-col gap-2">
+      <textarea
+        autoFocus
+        value={descInput}
+        onChange={(e) => setDescInput(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); saveDescription(); }
+          if (e.key === "Escape") { setDescInput(description); setEditingDesc(false); }
+        }}
+        rows={2}
+        placeholder="What's this list about?"
+        className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:border-slate-400 focus:outline-none resize-none"
+      />
+      <div className="flex gap-2">
+        <button
+          onClick={saveDescription}
+          disabled={savingDesc}
+          className="text-xs text-slate-200 hover:text-white transition-colors disabled:opacity-40"
+        >
+          {savingDesc ? "Saving…" : "Save"}
+        </button>
+        <button
+          onClick={() => { setDescInput(description); setEditingDesc(false); }}
+          className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  ) : (
+    <button
+      onClick={() => { setDescInput(description); setEditingDesc(true); }}
+      className="text-left w-full group"
+    >
+      {description ? (
+        <p className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">{description}</p>
+      ) : (
+        <p className="text-sm text-slate-600 group-hover:text-slate-500 transition-colors italic">Add a description…</p>
+      )}
+    </button>
+  );
+
   if (games.length === 0) {
     return (
-      <p className="py-12 text-center text-sm text-slate-500">
-        No games in this list yet. Add games from their detail page or with the ··· button on any game card.
-      </p>
+      <div className="space-y-4">
+        {descriptionBlock}
+        <p className="py-12 text-center text-sm text-slate-500">
+          No games in this list yet. Add games from their detail page or with the ··· button on any game card.
+        </p>
+      </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      {/* Sort controls */}
+      {/* Description */}
+      {descriptionBlock}
+
+      {/* Sort controls + view toggle */}
       <div className="flex items-center gap-3 flex-wrap">
         <span className="text-xs text-slate-500">Sort</span>
         <div className="flex gap-1.5 flex-wrap">
@@ -179,108 +269,145 @@ export default function ListDetail({
           ))}
         </div>
         {saving && <span className="text-[11px] text-slate-500">saving…</span>}
+        <div className="ml-auto">
+          <ViewToggle view={view} onChange={handleViewChange} />
+        </div>
       </div>
 
-      {/* Game rows */}
-      <div className="space-y-1.5">
-        {sorted.map((game, i) => {
-          const statusDisplay = STATUS_DISPLAY[game.status] ?? game.status;
-          const dotClass      = STATUS_DOT[statusDisplay] ?? "bg-slate-500";
-          const hours         = Math.floor(game.playtimeMinutes / 60);
-
-          return (
-            <div
-              key={game.shelfEntryId}
-              className="flex items-center gap-3 rounded-lg border border-slate-700/50 bg-slate-900 px-3 py-2.5 group"
-            >
-
-              {/* Cover art */}
-              <Link href={`/games/${game.shelfEntryId}`} className="flex-shrink-0">
-                <img
-                  src={`https://cdn.cloudflare.steamstatic.com/steam/apps/${game.steamAppId}/capsule_sm_120.jpg`}
-                  alt={game.gameName}
-                  className="h-9 w-16 rounded object-cover bg-slate-800"
-                />
-              </Link>
-
-              {/* Name + meta */}
-              <Link href={`/games/${game.shelfEntryId}`} className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-100 truncate">{game.gameName}</p>
-                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                  <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${dotClass}`} />
-                  <span className="text-xs text-slate-500">{statusDisplay}</span>
-                  {hours > 0 && (
-                    <span className="text-xs text-slate-600">{hours.toLocaleString()}h</span>
-                  )}
-                  {game.tags.map((tag) => (
-                    <span key={tag} className="rounded px-1.5 py-0.5 text-[10px] bg-slate-800 text-slate-500 capitalize">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </Link>
-
-              {/* Rating stars */}
-              {game.rating != null && (
-                <span className="flex-shrink-0 text-xs text-amber-400/70 tracking-tight">
-                  {"★".repeat(game.rating)}
+      {/* Games */}
+      {view === "grid" ? (
+        <div className="grid gap-2 grid-cols-3 sm:grid-cols-4 lg:grid-cols-6">
+          {sorted.map((game, i) => (
+            <Link key={game.shelfEntryId} href={`/games/${game.shelfEntryId}`} className="block relative">
+              <GameCard
+                game={{
+                  id:           game.shelfEntryId,
+                  steamAppId:   game.steamAppId,
+                  coverUrl:     game.coverUrl,
+                  platform:     game.platform,
+                  name:         game.gameName,
+                  status:       STATUS_DISPLAY[game.status] ?? game.status,
+                  rating:       game.rating,
+                  hours:        Math.floor(game.playtimeMinutes / 60),
+                  tags:         game.tags,
+                  isMultiplayer: game.isMultiplayer,
+                }}
+                size="S"
+              />
+              {sortBy === "rank" && (
+                <span className="absolute top-2 left-2 z-10 flex h-5 min-w-[20px] items-center justify-center rounded bg-black/70 px-1 text-[10px] font-semibold text-white tabular-nums">
+                  {i + 1}
                 </span>
               )}
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          {sorted.map((game, i) => {
+            const statusDisplay = STATUS_DISPLAY[game.status] ?? game.status;
+            const dotClass      = STATUS_DOT[statusDisplay] ?? "bg-slate-500";
+            const hours         = Math.floor(game.playtimeMinutes / 60);
 
-              {/* Rank stepper — same style as duration control */}
-              {sortBy === "rank" && (
-                <div className="flex items-center gap-1 rounded-lg border border-slate-600 bg-slate-700 px-2 py-1 flex-shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => moveUp(i)}
-                    disabled={i === 0 || saving}
-                    className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-slate-100 hover:bg-slate-600 text-sm font-medium transition-colors select-none disabled:opacity-20"
-                    aria-label="Move up"
-                  >
-                    −
-                  </button>
+            return (
+              <div
+                key={game.shelfEntryId}
+                className="flex items-center gap-3 rounded-lg border border-slate-700/50 bg-slate-900 px-3 py-2.5 group"
+              >
 
-                  {editingId === game.shelfEntryId ? (
-                    <input
-                      type="number"
-                      min={1}
-                      max={sorted.length}
-                      value={rankInput}
-                      autoFocus
-                      onChange={(e) => setRankInput(e.target.value)}
-                      onBlur={() => commitRankEdit(game.shelfEntryId)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") commitRankEdit(game.shelfEntryId);
-                        if (e.key === "Escape") setEditingId(null);
-                      }}
-                      className="w-8 bg-transparent text-center text-sm text-slate-100 tabular-nums focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                  ) : (
+                {/* Cover art */}
+                <Link href={`/games/${game.shelfEntryId}`} className="flex-shrink-0">
+                  <img
+                    src={game.coverUrl ?? `https://cdn.cloudflare.steamstatic.com/steam/apps/${game.steamAppId}/capsule_sm_120.jpg`}
+                    alt={game.gameName}
+                    className="h-9 w-16 rounded object-cover bg-slate-800"
+                    onError={(e) => {
+                      const img = e.currentTarget as HTMLImageElement;
+                      const fb = `https://cdn.cloudflare.steamstatic.com/steam/apps/${game.steamAppId}/header.jpg`;
+                      if (img.src !== fb) { img.src = fb; } else { img.style.display = "none"; }
+                    }}
+                  />
+                </Link>
+
+                {/* Name + meta */}
+                <Link href={`/games/${game.shelfEntryId}`} className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-100 truncate">{game.gameName}</p>
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                    <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${dotClass}`} />
+                    <span className="text-xs text-slate-500">{statusDisplay}</span>
+                    {hours > 0 && (
+                      <span className="text-xs text-slate-600">{hours.toLocaleString()}h</span>
+                    )}
+                    {game.tags.map((tag) => (
+                      <span key={tag} className="rounded px-1.5 py-0.5 text-[10px] bg-slate-800 text-slate-500 capitalize">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </Link>
+
+                {/* Rating stars */}
+                {game.rating != null && (
+                  <span className="flex-shrink-0 text-xs text-amber-400/70 tracking-tight">
+                    {"★".repeat(game.rating)}
+                  </span>
+                )}
+
+                {/* Rank stepper */}
+                {sortBy === "rank" && (
+                  <div className="flex items-center gap-1 rounded-lg border border-slate-600 bg-slate-700 px-2 py-1 flex-shrink-0">
                     <button
                       type="button"
-                      onClick={() => startRankEdit(game.shelfEntryId, i)}
-                      title="Click to jump to position"
-                      className="w-8 text-center text-sm text-slate-100 tabular-nums hover:text-white transition-colors"
+                      onClick={() => moveUp(i)}
+                      disabled={i === 0 || saving}
+                      className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-slate-100 hover:bg-slate-600 text-sm font-medium transition-colors select-none disabled:opacity-20"
+                      aria-label="Move up"
                     >
-                      {i + 1}
+                      −
                     </button>
-                  )}
 
-                  <button
-                    type="button"
-                    onClick={() => moveDown(i)}
-                    disabled={i === sorted.length - 1 || saving}
-                    className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-slate-100 hover:bg-slate-600 text-sm font-medium transition-colors select-none disabled:opacity-20"
-                    aria-label="Move down"
-                  >
-                    +
-                  </button>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                    {editingId === game.shelfEntryId ? (
+                      <input
+                        type="number"
+                        min={1}
+                        max={sorted.length}
+                        value={rankInput}
+                        autoFocus
+                        onChange={(e) => setRankInput(e.target.value)}
+                        onBlur={() => commitRankEdit(game.shelfEntryId)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") commitRankEdit(game.shelfEntryId);
+                          if (e.key === "Escape") setEditingId(null);
+                        }}
+                        className="w-8 bg-transparent text-center text-sm text-slate-100 tabular-nums focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => startRankEdit(game.shelfEntryId, i)}
+                        title="Click to jump to position"
+                        className="w-8 text-center text-sm text-slate-100 tabular-nums hover:text-white transition-colors"
+                      >
+                        {i + 1}
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => moveDown(i)}
+                      disabled={i === sorted.length - 1 || saving}
+                      className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-slate-100 hover:bg-slate-600 text-sm font-medium transition-colors select-none disabled:opacity-20"
+                      aria-label="Move down"
+                    >
+                      +
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
