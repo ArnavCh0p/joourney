@@ -2,58 +2,75 @@
 import { useEffect, useState } from "react";
 
 export default function TitleBar() {
-  const [mounted, setMounted] = useState(false);
+  const [mounted, setMounted]   = useState(false);
   const [isTauri, setIsTauri]   = useState(false);
+  const [isMaximized, setIsMax] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    setIsTauri(
+    const tauri =
       typeof window !== "undefined" &&
-      (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ !== undefined
-    );
+      (window as unknown as Record<string, unknown>).__TAURI_INTERNALS__ !== undefined;
+    setIsTauri(tauri);
+    if (!tauri) return;
+    (async () => {
+      const { getCurrentWindow } = await import("@tauri-apps/api/window");
+      const win = getCurrentWindow();
+      setIsMax(await win.isMaximized());
+      await win.onResized(async () => setIsMax(await win.isMaximized()));
+    })();
   }, []);
 
   if (!mounted || !isTauri) return null;
 
   async function minimize() {
     const { getCurrentWindow } = await import("@tauri-apps/api/window");
-    getCurrentWindow().minimize();
+    await getCurrentWindow().minimize();
   }
   async function toggleMaximize() {
     const { getCurrentWindow } = await import("@tauri-apps/api/window");
-    getCurrentWindow().toggleMaximize();
+    const win = getCurrentWindow();
+    if (await win.isFullscreen()) await win.setFullscreen(false);
+    else await win.toggleMaximize();
   }
   async function closeWindow() {
     const { getCurrentWindow } = await import("@tauri-apps/api/window");
-    getCurrentWindow().close();
+    await getCurrentWindow().close();
   }
 
   return (
     <div
       data-tauri-drag-region
-      className="h-7 flex items-center justify-end bg-slate-900 select-none px-2 border-b border-slate-800"
+      className="h-8 w-full bg-slate-900 flex items-center justify-end flex-shrink-0 select-none"
     >
-      <div className="flex items-center gap-0.5">
+      <div className="flex items-center">
         <button
           onClick={minimize}
-          className="h-5 w-8 flex items-center justify-center text-slate-500 hover:text-slate-300 hover:bg-slate-700 rounded transition-colors text-base leading-none"
           aria-label="Minimize"
+          className="h-8 w-11 flex items-center justify-center text-slate-500 hover:text-slate-300 hover:bg-slate-700/60 transition-colors text-base leading-none"
         >
           −
         </button>
         <button
           onClick={toggleMaximize}
-          className="h-5 w-8 flex items-center justify-center text-slate-500 hover:text-slate-300 hover:bg-slate-700 rounded transition-colors"
-          aria-label="Maximize"
+          aria-label={isMaximized ? "Restore" : "Maximize"}
+          className="h-8 w-11 flex items-center justify-center text-slate-500 hover:text-slate-300 hover:bg-slate-700/60 transition-colors"
         >
-          <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" strokeWidth="1.2">
-            <rect x="0.6" y="0.6" width="7.8" height="7.8" />
-          </svg>
+          {isMaximized ? (
+            <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" strokeWidth="1.2">
+              <rect x="2" y="0.6" width="6.4" height="6.4" />
+              <path d="M0.6 2.6 L0.6 8.4 L6.4 8.4" />
+            </svg>
+          ) : (
+            <svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" strokeWidth="1.2">
+              <rect x="0.6" y="0.6" width="7.8" height="7.8" />
+            </svg>
+          )}
         </button>
         <button
           onClick={closeWindow}
-          className="h-5 w-8 flex items-center justify-center text-slate-500 hover:text-white hover:bg-rose-600 rounded transition-colors text-base leading-none"
           aria-label="Close"
+          className="h-8 w-11 flex items-center justify-center text-slate-500 hover:text-white hover:bg-rose-600 transition-colors text-base leading-none"
         >
           ×
         </button>
