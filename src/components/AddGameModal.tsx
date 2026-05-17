@@ -10,6 +10,7 @@ const SP_STATUSES: { value: string; label: string }[] = [
   { value: "UNTRACKED",    label: "Untracked"    },
   { value: "WANT_TO_PLAY", label: "Want to Play" },
   { value: "PLAYING",      label: "Playing"      },
+  { value: "REPLAYING",    label: "Replaying"    },
   { value: "COMPLETED",    label: "Completed"    },
   { value: "ABANDONED",    label: "Abandoned"    },
 ];
