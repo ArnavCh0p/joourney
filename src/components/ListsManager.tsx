@@ -6,6 +6,7 @@ import Link from "next/link";
 type ListItem = {
   id: string;
   name: string;
+  description: string | null;
   entryCount: number;
   previewAppIds: number[];
 };
@@ -28,7 +29,7 @@ export default function ListsManager({ initialLists }: { initialLists: ListItem[
         body: JSON.stringify({ name }),
       });
       const list = await res.json();
-      setLists((prev) => [...prev, { id: list.id, name: list.name, entryCount: 0, previewAppIds: [] }]);
+      setLists((prev) => [...prev, { id: list.id, name: list.name, description: null, entryCount: 0, previewAppIds: [] }]);
       setNewName("");
     } finally {
       setCreating(false);
@@ -94,7 +95,10 @@ export default function ListsManager({ initialLists }: { initialLists: ListItem[
               )}
               <div>
                 <p className="text-sm font-medium text-slate-100">{list.name}</p>
-                <p className="text-xs text-slate-400">{list.entryCount} {list.entryCount === 1 ? "game" : "games"}</p>
+                {list.description && (
+                  <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{list.description}</p>
+                )}
+                <p className="text-xs text-slate-400 mt-0.5">{list.entryCount} {list.entryCount === 1 ? "game" : "games"}</p>
               </div>
             </Link>
 

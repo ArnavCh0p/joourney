@@ -54,15 +54,38 @@ const SORT_OPTIONS: { value: SortBy; label: string }[] = [
 export default function ListDetail({
   listId,
   initialGames,
+  initialDescription,
 }: {
   listId: string;
   initialGames: Game[];
+  initialDescription: string | null;
 }) {
   const [games, setGames]       = useState<Game[]>(initialGames);
   const [sortBy, setSortBy]     = useState<SortBy>("added");
   const [saving, setSaving]     = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [rankInput, setRankInput] = useState("");
+
+  const [description, setDescription]         = useState(initialDescription ?? "");
+  const [editingDesc, setEditingDesc]         = useState(false);
+  const [descInput, setDescInput]             = useState(initialDescription ?? "");
+  const [savingDesc, setSavingDesc]           = useState(false);
+
+  async function saveDescription() {
+    setSavingDesc(true);
+    const val = descInput.trim() || null;
+    try {
+      await fetch(`/api/lists/${listId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: val }),
+      });
+      setDescription(val ?? "");
+    } finally {
+      setSavingDesc(false);
+      setEditingDesc(false);
+    }
+  }
 
   const sorted = useMemo<Game[]>(() => {
     const arr = [...games];
@@ -150,16 +173,65 @@ export default function ListDetail({
     }
   }
 
+  const descriptionBlock = editingDesc ? (
+    <div className="flex flex-col gap-2">
+      <textarea
+        autoFocus
+        value={descInput}
+        onChange={(e) => setDescInput(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); saveDescription(); }
+          if (e.key === "Escape") { setDescInput(description); setEditingDesc(false); }
+        }}
+        rows={2}
+        placeholder="What's this list about?"
+        className="w-full rounded-lg border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-200 placeholder:text-slate-500 focus:border-slate-400 focus:outline-none resize-none"
+      />
+      <div className="flex gap-2">
+        <button
+          onClick={saveDescription}
+          disabled={savingDesc}
+          className="text-xs text-slate-200 hover:text-white transition-colors disabled:opacity-40"
+        >
+          {savingDesc ? "Saving…" : "Save"}
+        </button>
+        <button
+          onClick={() => { setDescInput(description); setEditingDesc(false); }}
+          className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  ) : (
+    <button
+      onClick={() => { setDescInput(description); setEditingDesc(true); }}
+      className="text-left w-full group"
+    >
+      {description ? (
+        <p className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">{description}</p>
+      ) : (
+        <p className="text-sm text-slate-600 group-hover:text-slate-500 transition-colors italic">Add a description…</p>
+      )}
+    </button>
+  );
+
   if (games.length === 0) {
     return (
-      <p className="py-12 text-center text-sm text-slate-500">
-        No games in this list yet. Add games from their detail page or with the ··· button on any game card.
-      </p>
+      <div className="space-y-4">
+        {descriptionBlock}
+        <p className="py-12 text-center text-sm text-slate-500">
+          No games in this list yet. Add games from their detail page or with the ··· button on any game card.
+        </p>
+      </div>
     );
   }
 
   return (
     <div className="space-y-4">
+      {/* Description */}
+      {descriptionBlock}
+
       {/* Sort controls */}
       <div className="flex items-center gap-3 flex-wrap">
         <span className="text-xs text-slate-500">Sort</span>

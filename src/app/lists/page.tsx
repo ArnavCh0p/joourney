@@ -35,6 +35,7 @@ export default async function ListsPage() {
   const lists = rawLists.map((l: any) => ({
     id: l.id,
     name: l.name,
+    description: (l.description ?? null) as string | null,
     entryCount: l._count.entries,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     previewAppIds: l.entries.map((e: any) => e.shelfEntry.steamAppId),

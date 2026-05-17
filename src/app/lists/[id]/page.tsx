@@ -20,8 +20,8 @@ export default async function ListDetailPage({ params }: { params: Promise<Param
   if (!dbUser) redirect("/");
 
   // Verify list ownership
-  const listMeta = await prisma.$queryRaw<{ id: string; name: string; userId: string }[]>`
-    SELECT id, name, "userId" FROM "List" WHERE id = ${id}
+  const listMeta = await prisma.$queryRaw<{ id: string; name: string; description: string | null; userId: string }[]>`
+    SELECT id, name, description, "userId" FROM "List" WHERE id = ${id}
   `.then((rows) => rows[0] ?? null).catch(() => null);
 
   if (!listMeta || listMeta.userId !== dbUser.id) notFound();
@@ -85,7 +85,7 @@ export default async function ListDetailPage({ params }: { params: Promise<Param
         </p>
       </div>
 
-      <ListDetail listId={id} initialGames={games} />
+      <ListDetail listId={id} initialGames={games} initialDescription={listMeta.description ?? null} />
     </div>
   );
 }
