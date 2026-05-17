@@ -248,11 +248,21 @@ export default function ShelfPage({ games, initialFilter, initialTag, totalHours
     if (groupBy === "none") return null;
     const map: Record<string, ShelfGame[]> = {};
     for (const g of visibleGames) {
-      let key: string;
-      if (groupBy === "status")     key = g.status;
-      else if (groupBy === "genre") key = g.genres[0] ?? "Untagged";
-      else                          key = g.tags[0]   ?? "Untagged";
-      (map[key] ??= []).push(g);
+      if (groupBy === "status") {
+        (map[g.status] ??= []).push(g);
+      } else if (groupBy === "genre") {
+        if (g.genres.length === 0) {
+          (map["Untagged"] ??= []).push(g);
+        } else {
+          for (const genre of g.genres) (map[genre] ??= []).push(g);
+        }
+      } else {
+        if (g.tags.length === 0) {
+          (map["Untagged"] ??= []).push(g);
+        } else {
+          for (const tag of g.tags) (map[tag] ??= []).push(g);
+        }
+      }
     }
     const entries = Object.entries(map);
     if (groupBy === "status") {
