@@ -3,7 +3,6 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import UnhideButton from "@/components/UnhideButton";
 import UserTagsManager from "@/components/UserTagsManager";
 
 const STATUS_DISPLAY: Record<string, string> = {
@@ -53,12 +52,8 @@ export default async function ProfilePage() {
     prisma.shelfEntry.findMany({ where: { userId: user.id }, select: { tags: true } }),
   ]);
 
-  // Split here so totalHours and top5 include hidden, but counts/breakdown don't
-  const entries        = allEntries.filter((e) => !e.isHidden);
-  const hiddenEntries  = allEntries
-    .filter((e) => e.isHidden)
-    .sort((a, b) => a.gameName.localeCompare(b.gameName))
-    .map((e) => ({ id: e.id, gameName: e.gameName }));
+  // Exclude hidden games from counts/breakdown (but include in totalHours/top5)
+  const entries = allEntries.filter((e) => !e.isHidden);
 
   const tagCounts: Record<string, number> = {};
   for (const e of allTagEntries) {
@@ -221,22 +216,6 @@ export default async function ProfilePage() {
         <UserTagsManager initialTags={userTags} />
       </section>
 
-      {/* ── Hidden games — discreet disclosure ── */}
-      {hiddenEntries.length > 0 && (
-        <details>
-          <summary className="cursor-pointer list-none text-xs text-slate-500 hover:text-slate-300 transition-colors select-none w-fit">
-            Hidden games
-          </summary>
-          <div className="mt-3 space-y-1">
-            {hiddenEntries.map((e) => (
-              <div key={e.id} className="flex items-center justify-between rounded-md px-3 py-2 bg-slate-900/60">
-                <span className="text-xs text-slate-400">{e.gameName}</span>
-                <UnhideButton entryId={e.id} />
-              </div>
-            ))}
-          </div>
-        </details>
-      )}
 
     </div>
   );
