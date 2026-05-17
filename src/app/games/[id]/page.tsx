@@ -163,6 +163,7 @@ export default async function GameDetailPage({
     id: s.id,
     date: formatDate(s.date),
     rawDate: s.date.toISOString().slice(0, 10),
+    rawDateTime: s.autoDetected ? s.date.toISOString() : null,
     durationMinutes: s.durationMinutes ?? null,
     notes: s.notes ?? null,
     music: s.music ?? null,

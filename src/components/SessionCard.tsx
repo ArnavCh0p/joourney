@@ -6,6 +6,14 @@ import type { RunProp, AchievementProp, ScreenshotProp } from "./RunManager";
 import MusicSearch from "./MusicSearch";
 import type { MusicResult } from "@/app/api/music/search/route";
 
+function formatTime(isoString: string): string {
+  return new Date(isoString).toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
 function formatDuration(minutes: number | null): string | null {
   if (!minutes || minutes <= 0) return null;
   const h = Math.floor(minutes / 60);
@@ -78,6 +86,7 @@ type Props = {
   notes: string | null;
   music: string | null;
   isAuto: boolean;
+  rawDateTime?: string | null;
   runs?: RunProp[];
   currentRunId?: string | null;
   showRunBadge?: boolean;
@@ -88,7 +97,7 @@ type Props = {
 type Mode = "view" | "edit" | "confirm-delete";
 
 export default function SessionCard({
-  sessionId, date, duration, notes, music, isAuto,
+  sessionId, date, duration, notes, music, isAuto, rawDateTime,
   runs = [], currentRunId, showRunBadge = false,
   achievements = [], initialScreenshots = [],
 }: Props) {
@@ -235,7 +244,11 @@ export default function SessionCard({
               {currentRunName}
             </span>
           )}
-          {isAuto && <span className="text-[10px] text-slate-500">auto-detected</span>}
+          {isAuto && (
+            <span className="text-[10px] text-slate-500">
+              auto-detected{rawDateTime ? ` · ${formatTime(rawDateTime)}` : ""}
+            </span>
+          )}
 
           {mode === "view" && (
             <div className="relative" ref={menuRef}>

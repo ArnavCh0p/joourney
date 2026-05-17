@@ -6,8 +6,8 @@ import { prisma } from "@/lib/prisma";
 import SignInHero from "@/components/SignInHero";
 import AutoSync from "@/components/AutoSync";
 import Link from "next/link";
-import GameCard from "@/components/GameCard";
 import LibraryNews from "@/components/LibraryNews";
+import PlayingCarousel from "@/components/PlayingCarousel";
 import TrendingGames from "@/components/TrendingGames";
 
 const STATUS_DISPLAY: Record<string, string> = {
@@ -215,13 +215,7 @@ export default async function Home() {
           <h2 className="text-base font-semibold text-slate-200 mb-3">
             Currently Playing
           </h2>
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2">
-            {playingGames.slice(0, 6).map((g) => (
-              <Link key={g.id} href={`/games/${g.id}`} className="block">
-                <GameCard game={g} size="S" />
-              </Link>
-            ))}
-          </div>
+          <PlayingCarousel games={playingGames} />
         </section>
       )}
 
