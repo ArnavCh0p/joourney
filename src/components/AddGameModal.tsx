@@ -89,7 +89,6 @@ export default function AddGameModal({ onClose }: { onClose: () => void }) {
 
   function selectResult(r: IGDBResult) {
     setTitle(r.name);
-    setPlatform(r.platform);
     setCoverUrl(r.coverUrl);
     setIgdbId(r.igdbId);
     setShowDropdown(false);

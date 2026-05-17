@@ -35,23 +35,10 @@ async function getAccessToken(): Promise<string> {
   return cachedToken.value;
 }
 
-// Map IGDB platform names to Joourney's platform enum values.
-// PC is checked across all platforms first — a game available on PC + console
-// should show "PC" since this is a PC gaming journal.
-function mapPlatform(platforms: { name: string }[]): string {
-  const names = platforms.map((p) => p.name.toLowerCase());
-  if (names.some((n) => n.includes("pc") || n.includes("windows") || n.includes("mac") || n.includes("linux"))) return "PC";
-  if (names.some((n) => n.includes("playstation")))                                            return "PlayStation";
-  if (names.some((n) => n.includes("xbox")))                                                   return "Xbox";
-  if (names.some((n) => n.includes("nintendo") || n.includes("switch") || n.includes("wii"))) return "Nintendo";
-  return "Other";
-}
-
 export type IGDBResult = {
   igdbId:   number;
   name:     string;
   coverUrl: string | null;
-  platform: string;
 };
 
 export async function searchIGDB(query: string, limit = 8): Promise<IGDBResult[]> {
@@ -63,7 +50,7 @@ export async function searchIGDB(query: string, limit = 8): Promise<IGDBResult[]
   // and a bare `category != 1` filter silently drops those games entirely.
   // Request `follows` so we can sort by popularity locally — IGDB's `search`
   // keyword ignores server-side `sort`.
-  const body = `fields name,cover.url,platforms.name,follows; search "${safe}"; where category = null | (category != 1 & category != 2 & category != 3); limit ${limit};`;
+  const body = `fields name,cover.url,follows; search "${safe}"; where category = null | (category != 1 & category != 2 & category != 3); limit ${limit};`;
 
   const res = await fetch(IGDB_GAMES_URL, {
     method: "POST",
@@ -82,7 +69,6 @@ export async function searchIGDB(query: string, limit = 8): Promise<IGDBResult[]
     id: number;
     name: string;
     cover?: { url: string };
-    platforms?: { name: string }[];
     follows?: number;
   }>;
   // Sort by follow count so canonical/popular games (e.g. Valorant, Fortnite)
@@ -96,6 +82,5 @@ export async function searchIGDB(query: string, limit = 8): Promise<IGDBResult[]
       coverUrl: g.cover?.url
         ? `https:${g.cover.url.replace("t_thumb", "t_cover_big")}`
         : null,
-      platform: g.platforms ? mapPlatform(g.platforms) : "Other",
     }));
 }
