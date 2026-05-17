@@ -231,6 +231,7 @@ export default function ShelfPage({ games, initialFilter, initialTag, totalHours
 
   const visibleGames = useMemo(() => {
     const filtered = games.filter((g) => {
+      if (activeFilter === "Hidden") return g.isHidden;
       if (g.isHidden) return false;
       const statusOk = activeFilter === "All"
         || (activeFilter === "Currently Playing" ? (g.status === "Playing" || g.status === "Replaying")

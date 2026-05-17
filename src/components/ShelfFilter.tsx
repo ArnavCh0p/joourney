@@ -1,6 +1,6 @@
 "use client";
 
-const STATUSES = ["All", "Currently Playing", "Multiplayer", "Want to Play", "Completed", "Abandoned", "Untracked"];
+const STATUSES = ["All", "Currently Playing", "Multiplayer", "Want to Play", "Completed", "Abandoned", "Untracked", "Hidden"];
 
 const ACTIVE_STYLES: Record<string, string> = {
   All:                 "bg-white text-slate-900",
@@ -10,6 +10,7 @@ const ACTIVE_STYLES: Record<string, string> = {
   Completed:           "bg-sky-500/20 text-sky-300 ring-1 ring-sky-500/30",
   Abandoned:           "bg-rose-500/20 text-rose-300 ring-1 ring-rose-500/30",
   Untracked:           "bg-slate-600 text-slate-300 ring-1 ring-slate-500",
+  Hidden:              "bg-slate-700 text-slate-400 ring-1 ring-slate-600",
 };
 
 type Props = {
