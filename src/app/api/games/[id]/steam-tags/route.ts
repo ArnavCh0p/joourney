@@ -17,6 +17,7 @@ export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  try {
   const user = await resolveUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -64,4 +65,8 @@ export async function POST(
   `;
 
   return NextResponse.json({ genres: steamGenres });
+  } catch (err) {
+    console.error("[POST /api/games/:id/steam-tags]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

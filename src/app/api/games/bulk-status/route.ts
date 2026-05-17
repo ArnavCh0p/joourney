@@ -7,6 +7,7 @@ import { ShelfStatus } from "@prisma/client";
 const VALID_STATUSES = new Set<string>(Object.values(ShelfStatus));
 
 export async function PATCH(req: NextRequest) {
+  try {
   const session = await getServerSession(authOptions);
   const steamId = (session?.user as { steamId?: string })?.steamId;
   if (!steamId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -37,4 +38,8 @@ export async function PATCH(req: NextRequest) {
   });
 
   return NextResponse.json({ updated: result.count });
+  } catch (err) {
+    console.error("[PATCH /api/games/bulk-status]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

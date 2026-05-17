@@ -25,6 +25,7 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  try {
   const user = await resolveUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -43,12 +44,17 @@ export async function GET(
   `;
 
   return NextResponse.json(runs);
+  } catch (err) {
+    console.error("[GET /api/games/:id/runs]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  try {
   const user = await resolveUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -81,4 +87,8 @@ export async function POST(
     { id: newId, name, notes, status: "ACTIVE", createdAt: now },
     { status: 201 }
   );
+  } catch (err) {
+    console.error("[POST /api/games/:id/runs]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

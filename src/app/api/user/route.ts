@@ -13,6 +13,7 @@ async function resolveUser() {
 }
 
 export async function PATCH(req: NextRequest) {
+  try {
   const user = await resolveUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -34,4 +35,8 @@ export async function PATCH(req: NextRequest) {
 
   await prisma.user.update({ where: { id: user.id }, data });
   return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("[PATCH /api/user]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

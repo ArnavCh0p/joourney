@@ -15,6 +15,7 @@ async function resolveUser() {
 }
 
 export async function GET(req: NextRequest) {
+  try {
   const user = await resolveUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -40,9 +41,14 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json(lists);
+  } catch (err) {
+    console.error("[GET /api/lists]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 export async function POST(req: NextRequest) {
+  try {
   const user = await resolveUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -58,4 +64,8 @@ export async function POST(req: NextRequest) {
 
   const list = await prisma.list.create({ data: { userId: user.id, name } });
   return NextResponse.json(list, { status: 201 });
+  } catch (err) {
+    console.error("[POST /api/lists]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

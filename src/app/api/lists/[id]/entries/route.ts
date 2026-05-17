@@ -23,6 +23,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  try {
   const user = await resolveUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -53,12 +54,17 @@ export async function POST(
   });
 
   return NextResponse.json(listEntry, { status: 201 });
+  } catch (err) {
+    console.error("[POST /api/lists/:id/entries]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  try {
   const user = await resolveUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -86,12 +92,17 @@ export async function PATCH(
   );
 
   return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("[PATCH /api/lists/:id/entries]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
 
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  try {
   const user = await resolveUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -112,4 +123,8 @@ export async function DELETE(
   });
 
   return new NextResponse(null, { status: 204 });
+  } catch (err) {
+    console.error("[DELETE /api/lists/:id/entries]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

@@ -17,6 +17,7 @@ const VALID_STATUSES = new Set<string>(Object.values(ShelfStatus));
 const VALID_PLATFORMS = new Set(["Steam", "PC", "PlayStation", "Xbox", "Nintendo", "Other"]);
 
 export async function POST(req: NextRequest) {
+  try {
   const user = await resolveUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -60,4 +61,8 @@ export async function POST(req: NextRequest) {
   });
 
   return NextResponse.json({ id: entry.id }, { status: 201 });
+  } catch (err) {
+    console.error("[POST /api/games]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

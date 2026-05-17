@@ -23,6 +23,7 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  try {
   const user = await resolveUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -86,4 +87,8 @@ export async function POST(
   `;
 
   return NextResponse.json({ id: screenshotId, url: publicUrl }, { status: 201 });
+  } catch (err) {
+    console.error("[POST /api/sessions/:id/screenshots]", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
