@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import ViewToggle from "./ViewToggle";
+import GameCard from "./GameCard";
 
 type Game = {
   shelfEntryId: string;
@@ -9,11 +11,16 @@ type Game = {
   rank: number | null;
   steamAppId: number;
   gameName: string;
+  coverUrl: string | null;
+  platform: string;
   status: string;
   rating: number | null;
   playtimeMinutes: number;
   tags: string[];
+  isMultiplayer: boolean;
 };
+
+type View = "grid" | "list";
 
 type SortBy = "added" | "name" | "rating" | "playtime" | "rank";
 
@@ -70,6 +77,17 @@ export default function ListDetail({
   const [editingDesc, setEditingDesc]         = useState(false);
   const [descInput, setDescInput]             = useState(initialDescription ?? "");
   const [savingDesc, setSavingDesc]           = useState(false);
+  const [view, setView]                       = useState<View>("list");
+
+  useEffect(() => {
+    const stored = localStorage.getItem("list-view") as View | null;
+    if (stored === "grid" || stored === "list") setView(stored);
+  }, []);
+
+  function handleViewChange(v: View) {
+    setView(v);
+    localStorage.setItem("list-view", v);
+  }
 
   async function saveDescription() {
     setSavingDesc(true);
@@ -232,7 +250,7 @@ export default function ListDetail({
       {/* Description */}
       {descriptionBlock}
 
-      {/* Sort controls */}
+      {/* Sort controls + view toggle */}
       <div className="flex items-center gap-3 flex-wrap">
         <span className="text-xs text-slate-500">Sort</span>
         <div className="flex gap-1.5 flex-wrap">
@@ -251,108 +269,135 @@ export default function ListDetail({
           ))}
         </div>
         {saving && <span className="text-[11px] text-slate-500">saving…</span>}
+        <div className="ml-auto">
+          <ViewToggle view={view} onChange={handleViewChange} />
+        </div>
       </div>
 
-      {/* Game rows */}
-      <div className="space-y-1.5">
-        {sorted.map((game, i) => {
-          const statusDisplay = STATUS_DISPLAY[game.status] ?? game.status;
-          const dotClass      = STATUS_DOT[statusDisplay] ?? "bg-slate-500";
-          const hours         = Math.floor(game.playtimeMinutes / 60);
+      {/* Games */}
+      {view === "grid" ? (
+        <div className="grid gap-2 grid-cols-3 sm:grid-cols-4 lg:grid-cols-6">
+          {sorted.map((game) => (
+            <Link key={game.shelfEntryId} href={`/games/${game.shelfEntryId}`} className="block">
+              <GameCard
+                game={{
+                  id:           game.shelfEntryId,
+                  steamAppId:   game.steamAppId,
+                  coverUrl:     game.coverUrl,
+                  platform:     game.platform,
+                  name:         game.gameName,
+                  status:       STATUS_DISPLAY[game.status] ?? game.status,
+                  rating:       game.rating,
+                  hours:        Math.floor(game.playtimeMinutes / 60),
+                  tags:         game.tags,
+                  isMultiplayer: game.isMultiplayer,
+                }}
+                size="S"
+              />
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <div className="space-y-1.5">
+          {sorted.map((game, i) => {
+            const statusDisplay = STATUS_DISPLAY[game.status] ?? game.status;
+            const dotClass      = STATUS_DOT[statusDisplay] ?? "bg-slate-500";
+            const hours         = Math.floor(game.playtimeMinutes / 60);
 
-          return (
-            <div
-              key={game.shelfEntryId}
-              className="flex items-center gap-3 rounded-lg border border-slate-700/50 bg-slate-900 px-3 py-2.5 group"
-            >
+            return (
+              <div
+                key={game.shelfEntryId}
+                className="flex items-center gap-3 rounded-lg border border-slate-700/50 bg-slate-900 px-3 py-2.5 group"
+              >
 
-              {/* Cover art */}
-              <Link href={`/games/${game.shelfEntryId}`} className="flex-shrink-0">
-                <img
-                  src={`https://cdn.cloudflare.steamstatic.com/steam/apps/${game.steamAppId}/capsule_sm_120.jpg`}
-                  alt={game.gameName}
-                  className="h-9 w-16 rounded object-cover bg-slate-800"
-                />
-              </Link>
+                {/* Cover art */}
+                <Link href={`/games/${game.shelfEntryId}`} className="flex-shrink-0">
+                  <img
+                    src={game.coverUrl ?? `https://cdn.cloudflare.steamstatic.com/steam/apps/${game.steamAppId}/capsule_sm_120.jpg`}
+                    alt={game.gameName}
+                    className="h-9 w-16 rounded object-cover bg-slate-800"
+                  />
+                </Link>
 
-              {/* Name + meta */}
-              <Link href={`/games/${game.shelfEntryId}`} className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-100 truncate">{game.gameName}</p>
-                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                  <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${dotClass}`} />
-                  <span className="text-xs text-slate-500">{statusDisplay}</span>
-                  {hours > 0 && (
-                    <span className="text-xs text-slate-600">{hours.toLocaleString()}h</span>
-                  )}
-                  {game.tags.map((tag) => (
-                    <span key={tag} className="rounded px-1.5 py-0.5 text-[10px] bg-slate-800 text-slate-500 capitalize">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </Link>
+                {/* Name + meta */}
+                <Link href={`/games/${game.shelfEntryId}`} className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-100 truncate">{game.gameName}</p>
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                    <span className={`h-1.5 w-1.5 rounded-full flex-shrink-0 ${dotClass}`} />
+                    <span className="text-xs text-slate-500">{statusDisplay}</span>
+                    {hours > 0 && (
+                      <span className="text-xs text-slate-600">{hours.toLocaleString()}h</span>
+                    )}
+                    {game.tags.map((tag) => (
+                      <span key={tag} className="rounded px-1.5 py-0.5 text-[10px] bg-slate-800 text-slate-500 capitalize">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </Link>
 
-              {/* Rating stars */}
-              {game.rating != null && (
-                <span className="flex-shrink-0 text-xs text-amber-400/70 tracking-tight">
-                  {"★".repeat(game.rating)}
-                </span>
-              )}
+                {/* Rating stars */}
+                {game.rating != null && (
+                  <span className="flex-shrink-0 text-xs text-amber-400/70 tracking-tight">
+                    {"★".repeat(game.rating)}
+                  </span>
+                )}
 
-              {/* Rank stepper — same style as duration control */}
-              {sortBy === "rank" && (
-                <div className="flex items-center gap-1 rounded-lg border border-slate-600 bg-slate-700 px-2 py-1 flex-shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => moveUp(i)}
-                    disabled={i === 0 || saving}
-                    className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-slate-100 hover:bg-slate-600 text-sm font-medium transition-colors select-none disabled:opacity-20"
-                    aria-label="Move up"
-                  >
-                    −
-                  </button>
-
-                  {editingId === game.shelfEntryId ? (
-                    <input
-                      type="number"
-                      min={1}
-                      max={sorted.length}
-                      value={rankInput}
-                      autoFocus
-                      onChange={(e) => setRankInput(e.target.value)}
-                      onBlur={() => commitRankEdit(game.shelfEntryId)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") commitRankEdit(game.shelfEntryId);
-                        if (e.key === "Escape") setEditingId(null);
-                      }}
-                      className="w-8 bg-transparent text-center text-sm text-slate-100 tabular-nums focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
-                    />
-                  ) : (
+                {/* Rank stepper */}
+                {sortBy === "rank" && (
+                  <div className="flex items-center gap-1 rounded-lg border border-slate-600 bg-slate-700 px-2 py-1 flex-shrink-0">
                     <button
                       type="button"
-                      onClick={() => startRankEdit(game.shelfEntryId, i)}
-                      title="Click to jump to position"
-                      className="w-8 text-center text-sm text-slate-100 tabular-nums hover:text-white transition-colors"
+                      onClick={() => moveUp(i)}
+                      disabled={i === 0 || saving}
+                      className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-slate-100 hover:bg-slate-600 text-sm font-medium transition-colors select-none disabled:opacity-20"
+                      aria-label="Move up"
                     >
-                      {i + 1}
+                      −
                     </button>
-                  )}
 
-                  <button
-                    type="button"
-                    onClick={() => moveDown(i)}
-                    disabled={i === sorted.length - 1 || saving}
-                    className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-slate-100 hover:bg-slate-600 text-sm font-medium transition-colors select-none disabled:opacity-20"
-                    aria-label="Move down"
-                  >
-                    +
-                  </button>
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                    {editingId === game.shelfEntryId ? (
+                      <input
+                        type="number"
+                        min={1}
+                        max={sorted.length}
+                        value={rankInput}
+                        autoFocus
+                        onChange={(e) => setRankInput(e.target.value)}
+                        onBlur={() => commitRankEdit(game.shelfEntryId)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") commitRankEdit(game.shelfEntryId);
+                          if (e.key === "Escape") setEditingId(null);
+                        }}
+                        className="w-8 bg-transparent text-center text-sm text-slate-100 tabular-nums focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => startRankEdit(game.shelfEntryId, i)}
+                        title="Click to jump to position"
+                        className="w-8 text-center text-sm text-slate-100 tabular-nums hover:text-white transition-colors"
+                      >
+                        {i + 1}
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => moveDown(i)}
+                      disabled={i === sorted.length - 1 || saving}
+                      className="w-6 h-6 flex items-center justify-center rounded text-slate-400 hover:text-slate-100 hover:bg-slate-600 text-sm font-medium transition-colors select-none disabled:opacity-20"
+                      aria-label="Move down"
+                    >
+                      +
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

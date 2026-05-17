@@ -33,10 +33,13 @@ export default async function ListDetailPage({ params }: { params: Promise<Param
     rank: number | null;
     steamAppId: number;
     gameName: string;
+    coverUrl: string | null;
+    platform: string;
     status: string;
     rating: number | null;
     playtimeMinutes: number;
     tags: string[];
+    isMultiplayer: boolean;
   };
 
   const rows = await prisma.$queryRaw<EntryRow[]>`
@@ -46,10 +49,13 @@ export default async function ListDetailPage({ params }: { params: Promise<Param
       le."rank",
       se."steamAppId",
       se."gameName",
+      se."coverUrl",
+      se."platform",
       se."status",
       se."rating",
       se."playtimeMinutes",
-      se."tags"
+      se."tags",
+      se."isMultiplayer"
     FROM "ListEntry" le
     JOIN "ShelfEntry" se ON le."shelfEntryId" = se.id
     WHERE le."listId" = ${id}
@@ -58,15 +64,18 @@ export default async function ListDetailPage({ params }: { params: Promise<Param
 
   // Serialize for client (BigInt, Date → primitives)
   const games = rows.map((r) => ({
-    shelfEntryId: String(r.shelfEntryId),
-    addedAt:      r.addedAt instanceof Date ? r.addedAt.toISOString() : String(r.addedAt),
-    rank:         r.rank != null ? Number(r.rank) : null,
-    steamAppId:   Number(r.steamAppId),
-    gameName:     String(r.gameName),
-    status:       String(r.status),
-    rating:       r.rating != null ? Number(r.rating) : null,
+    shelfEntryId:    String(r.shelfEntryId),
+    addedAt:         r.addedAt instanceof Date ? r.addedAt.toISOString() : String(r.addedAt),
+    rank:            r.rank != null ? Number(r.rank) : null,
+    steamAppId:      Number(r.steamAppId),
+    gameName:        String(r.gameName),
+    coverUrl:        r.coverUrl ? String(r.coverUrl) : null,
+    platform:        String(r.platform ?? "Steam"),
+    status:          String(r.status),
+    rating:          r.rating != null ? Number(r.rating) : null,
     playtimeMinutes: Number(r.playtimeMinutes),
-    tags:         Array.isArray(r.tags) ? r.tags : [],
+    tags:            Array.isArray(r.tags) ? r.tags : [],
+    isMultiplayer:   Boolean(r.isMultiplayer),
   }));
 
   return (
