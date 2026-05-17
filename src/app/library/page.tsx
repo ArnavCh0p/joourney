@@ -33,6 +33,10 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
 
   if (!(user as { onboardingComplete?: boolean }).onboardingComplete) redirect("/onboarding");
 
+  const userLists = await prisma.$queryRaw<{ id: string; name: string }[]>`
+    SELECT id, name FROM "List" WHERE "userId" = ${user.id} ORDER BY "createdAt" ASC
+  `.catch(() => [] as { id: string; name: string }[]);
+
   const entries = await prisma.shelfEntry.findMany({
     where: { userId: user.id },
     orderBy: { updatedAt: "desc" },
@@ -59,5 +63,5 @@ export default async function LibraryPage({ searchParams }: { searchParams: Prom
       || ["MULTIPLAYER","MULTIPLAYER_ACTIVE","MULTIPLAYER_ON_BREAK","MULTIPLAYER_RETIRED"].includes(e.status),
   }));
 
-  return <ShelfPage games={games} initialFilter={filter} initialTag={tag} totalHours={totalHours} />;
+  return <ShelfPage games={games} initialFilter={filter} initialTag={tag} totalHours={totalHours} lists={userLists} />;
 }

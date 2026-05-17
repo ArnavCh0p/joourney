@@ -74,7 +74,7 @@ function sortGames(games: ShelfGame[], key: SortKey): ShelfGame[] {
   });
 }
 
-export default function ShelfPage({ games, initialFilter, initialTag, totalHours: totalHoursProp }: { games: ShelfGame[]; initialFilter?: string; initialTag?: string; totalHours?: number }) {
+export default function ShelfPage({ games, initialFilter, initialTag, totalHours: totalHoursProp, lists }: { games: ShelfGame[]; initialFilter?: string; initialTag?: string; totalHours?: number; lists?: { id: string; name: string }[] }) {
   const router = useRouter();
 
   const [activeFilter, setActiveFilter]     = useState(initialFilter ?? "All");
@@ -97,6 +97,9 @@ export default function ShelfPage({ games, initialFilter, initialTag, totalHours
   const [bulkStatus, setBulkStatus]         = useState("");
   const [bulkType, setBulkType]             = useState<"single" | "none" | "multi">("none");
   const [bulkSaving, setBulkSaving]         = useState(false);
+  const [bulkListId, setBulkListId]         = useState("");
+  const [addingToList, setAddingToList]     = useState(false);
+  const [listAddMsg, setListAddMsg]         = useState<string | null>(null);
 
   useEffect(() => {
     const v  = localStorage.getItem("shelf-view")         as View    | null;
@@ -126,7 +129,7 @@ export default function ShelfPage({ games, initialFilter, initialTag, totalHours
   }
 
   function enterEditMode() { setEditMode(true);  setSelectedIds(new Set()); }
-  function exitEditMode()  { setEditMode(false); setSelectedIds(new Set()); setBulkStatus(""); setBulkType("none"); }
+  function exitEditMode()  { setEditMode(false); setSelectedIds(new Set()); setBulkStatus(""); setBulkType("none"); setBulkListId(""); setListAddMsg(null); }
 
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
@@ -150,6 +153,24 @@ export default function ShelfPage({ games, initialFilter, initialTag, totalHours
     setBulkSaving(false);
     exitEditMode();
     router.refresh();
+  }
+
+  async function addToList() {
+    if (!bulkListId || selectedIds.size === 0) return;
+    setAddingToList(true);
+    setListAddMsg(null);
+    try {
+      await fetch(`/api/lists/${bulkListId}/entries`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shelfEntryIds: [...selectedIds] }),
+      });
+      const listName = lists?.find((l) => l.id === bulkListId)?.name ?? "list";
+      setListAddMsg(`Added ${selectedIds.size} game${selectedIds.size === 1 ? "" : "s"} to "${listName}"`);
+      setBulkListId("");
+    } finally {
+      setAddingToList(false);
+    }
   }
 
   useEffect(() => {
@@ -577,6 +598,29 @@ export default function ShelfPage({ games, initialFilter, initialTag, totalHours
           >
             Select all
           </button>
+
+          {/* Add to list */}
+          {lists && lists.length > 0 && (
+            <>
+              <div className="h-4 w-px bg-slate-600 flex-shrink-0" />
+              <select
+                value={bulkListId}
+                onChange={(e) => { setBulkListId(e.target.value); setListAddMsg(null); }}
+                className="rounded-md border border-slate-600 bg-slate-700 px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none cursor-pointer"
+              >
+                <option value="">Add to list…</option>
+                {lists.map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
+              </select>
+              <button
+                onClick={addToList}
+                disabled={!bulkListId || selectedIds.size === 0 || addingToList}
+                className="rounded-md border border-slate-600 px-3 py-1.5 text-xs text-slate-300 hover:text-slate-100 hover:border-slate-400 disabled:opacity-40 transition-colors"
+              >
+                {addingToList ? "Adding…" : "Add"}
+              </button>
+              {listAddMsg && <span className="text-xs text-emerald-400">{listAddMsg}</span>}
+            </>
+          )}
 
           <div className="ml-auto flex flex-wrap items-center gap-2">
             {/* Game type toggle — single / no change / multiplayer */}
