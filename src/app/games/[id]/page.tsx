@@ -1,5 +1,4 @@
 import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -10,6 +9,7 @@ import TagManager from "@/components/TagManager";
 import AddToListPanel from "@/components/AddToListPanel";
 import HideGameButton from "@/components/HideGameButton";
 import DeleteGameButton from "@/components/DeleteGameButton";
+import BackButton from "@/components/BackButton";
 
 const STATUS_DISPLAY: Record<string, string> = {
   PLAYING:               "Playing",
@@ -208,9 +208,7 @@ export default async function GameDetailPage({
 
         {/* Content on top of hero */}
         <div className="relative z-10 px-6 pt-6 pb-10">
-          <Link href={backHref} className="inline-flex items-center gap-1 text-xs text-slate-400 hover:text-slate-200 transition-colors">
-            ← My Library
-          </Link>
+          <BackButton fallback={backHref} />
 
           <div className="flex gap-5 items-end mt-6">
             {/* Cover thumbnail — IGDB cover, Steam header, or initials placeholder */}
