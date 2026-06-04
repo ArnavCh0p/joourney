@@ -15,8 +15,17 @@ function SteamCallback() {
   }, [steamId]);
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <p className="text-zinc-400">Signing you in...</p>
+    <div className="flex flex-col items-center justify-center min-h-[60vh] gap-6">
+      <h1 className="text-4xl font-bold text-white tracking-tighter select-none">
+        J<span className="text-emerald-400 font-extralight">∞</span>rney
+      </h1>
+
+      <div className="relative h-8 w-8">
+        <div className="absolute inset-0 rounded-full border-2 border-slate-700" />
+        <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-emerald-400 animate-spin" />
+      </div>
+
+      <p className="text-sm text-slate-400 tracking-wide">Connecting to Steam&hellip;</p>
     </div>
   );
 }

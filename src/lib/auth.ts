@@ -81,6 +81,7 @@ export const authOptions: NextAuthOptions = {
 
   pages: {
     signIn: "/api/auth/steam-login",
+    error:  "/signin/error",
   },
 
   secret: process.env.NEXTAUTH_SECRET,

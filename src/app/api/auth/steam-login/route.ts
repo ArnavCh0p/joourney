@@ -7,7 +7,6 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { signIn } from "next-auth/react";
 
 const STEAM_OPENID_URL = "https://steamcommunity.com/openid/login";
 
@@ -24,13 +23,18 @@ export async function GET(req: NextRequest) {
     );
 
     if (!steamId) {
-      return NextResponse.redirect(new URL("/api/auth/error?error=NoSteamId", req.url));
+      return NextResponse.redirect(new URL("/signin/error", req.url));
     }
 
     // Redirect to a client page that calls signIn() with the steamId
     const callbackUrl = new URL("/steam-callback", req.url);
     callbackUrl.searchParams.set("steamId", steamId);
     return NextResponse.redirect(callbackUrl);
+  }
+
+  // User cancelled on Steam or OpenID returned an unexpected mode
+  if (mode !== null) {
+    return NextResponse.redirect(new URL("/signin/error", req.url));
   }
 
   // Initial login — redirect to Steam OpenID
