@@ -6,6 +6,7 @@ import TitleBar from "@/components/TitleBar";
 import SplashScreen from "@/components/SplashScreen";
 import UpdateChecker from "@/components/UpdateChecker";
 import Providers from "./providers";
+import StarField from "@/components/StarField";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 
@@ -19,6 +20,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
       <body className="bg-[#0f172a] min-h-screen w-full">
         <Providers>
+          <StarField />
           <SplashScreen />
           <UpdateChecker />
           <div className="flex flex-col min-h-screen">

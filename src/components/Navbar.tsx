@@ -48,6 +48,7 @@ export default function Navbar() {
               <NavLink href="/library" label="Library" />
               <NavLink href="/lists"   label="Lists"   />
               <NavLink href="/profile" label="Profile" />
+              <NavLink href="/info"    label="Info"    />
             </div>
           )}
         </div>

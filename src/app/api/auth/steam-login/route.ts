@@ -10,6 +10,9 @@ import { NextRequest, NextResponse } from "next/server";
 
 const STEAM_OPENID_URL = "https://steamcommunity.com/openid/login";
 
+// Use a hardcoded base so URL construction is never influenced by request headers (SSRF).
+const BASE_URL = process.env.NEXTAUTH_URL ?? "https://joourney.net";
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
 
@@ -23,29 +26,29 @@ export async function GET(req: NextRequest) {
     );
 
     if (!steamId) {
-      return NextResponse.redirect(new URL("/signin/error", req.url));
+      return NextResponse.redirect(new URL("/signin/error", BASE_URL));
     }
 
     // Redirect to a client page that calls signIn() with the steamId
-    const callbackUrl = new URL("/steam-callback", req.url);
+    const callbackUrl = new URL("/steam-callback", BASE_URL);
     callbackUrl.searchParams.set("steamId", steamId);
     return NextResponse.redirect(callbackUrl);
   }
 
   // User cancelled on Steam or OpenID returned an unexpected mode
   if (mode !== null) {
-    return NextResponse.redirect(new URL("/signin/error", req.url));
+    return NextResponse.redirect(new URL("/signin/error", BASE_URL));
   }
 
   // Initial login — redirect to Steam OpenID
-  const returnTo = new URL("/api/auth/steam-login", req.url).toString();
+  const returnTo = new URL("/api/auth/steam-login", BASE_URL).toString();
   const params = new URLSearchParams({
     "openid.ns": "http://specs.openid.net/auth/2.0",
     "openid.mode": "checkid_setup",
     "openid.identity": "http://specs.openid.net/auth/2.0/identifier_select",
     "openid.claimed_id": "http://specs.openid.net/auth/2.0/identifier_select",
     "openid.return_to": returnTo,
-    "openid.realm": new URL(req.url).origin,
+    "openid.realm": new URL(BASE_URL).origin,
   });
 
   return NextResponse.redirect(`${STEAM_OPENID_URL}?${params.toString()}`);

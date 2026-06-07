@@ -73,6 +73,9 @@ export async function POST() {
   // Only for games that already existed (not first-time imports).
   let sessionsCreated = 0;
   const now = new Date();
+  // Normalize to UTC midnight so the session date always shows as the sync day,
+  // not a timestamp that can shift across timezones when displayed.
+  const sessionDate = new Date(`${now.toISOString().slice(0, 10)}T00:00:00.000Z`);
 
   // Collect the shelf entry IDs of active games so we can fetch achievements in parallel
   const activeSessions: { entryId: string; appId: number }[] = [];
@@ -88,7 +91,7 @@ export async function POST() {
     try {
       await prisma.$executeRaw`
         INSERT INTO "Session" (id, "userId", "shelfEntryId", date, "durationMinutes", "autoDetected", notes, "createdAt", "updatedAt")
-        VALUES (${sessionId}, ${user.id}, ${prev.id}, ${now}, ${delta}, true, null, ${now}, ${now})
+        VALUES (${sessionId}, ${user.id}, ${prev.id}, ${sessionDate}, ${delta}, true, null, ${now}, ${now})
       `;
       sessionsCreated++;
       activeSessions.push({ entryId: prev.id, appId: game.appid });

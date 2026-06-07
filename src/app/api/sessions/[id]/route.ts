@@ -23,7 +23,7 @@ export async function PATCH(
 
   const { id } = await params;
 
-  let body: { notes?: string; durationMinutes?: number | null; runId?: string | null; music?: string | null };
+  let body: { notes?: string; durationMinutes?: number | null; runId?: string | null; music?: string | null; date?: string };
   try {
     body = await req.json();
   } catch {
@@ -32,7 +32,7 @@ export async function PATCH(
 
   const session = await prisma.session.findUnique({
     where: { id },
-    select: { userId: true, shelfEntryId: true, durationMinutes: true },
+    select: { userId: true, shelfEntryId: true, durationMinutes: true, date: true },
   });
 
   if (!session || session.userId !== user.id) {
@@ -58,33 +58,37 @@ export async function PATCH(
     ? ((typeof body.durationMinutes === "number" && body.durationMinutes > 0) ? body.durationMinutes : null)
     : (session.durationMinutes ?? null);
   const runId = body.runId !== undefined ? (body.runId ?? null) : undefined;
+  // Use provided date (YYYY-MM-DD) if given, otherwise keep the existing stored date.
+  const newDate = body.date
+    ? new Date(`${body.date}T00:00:00.000Z`)
+    : session.date;
   const now = new Date();
 
   if (runId !== undefined && trimmedMusic !== undefined) {
     await prisma.$executeRaw`
       UPDATE "Session"
       SET notes = ${trimmedNotes}, "durationMinutes" = ${dur},
-          "runId" = ${runId}, music = ${trimmedMusic}, "updatedAt" = ${now}
+          "runId" = ${runId}, music = ${trimmedMusic}, date = ${newDate}, "updatedAt" = ${now}
       WHERE id = ${id}
     `;
   } else if (runId !== undefined) {
     await prisma.$executeRaw`
       UPDATE "Session"
       SET notes = ${trimmedNotes}, "durationMinutes" = ${dur},
-          "runId" = ${runId}, "updatedAt" = ${now}
+          "runId" = ${runId}, date = ${newDate}, "updatedAt" = ${now}
       WHERE id = ${id}
     `;
   } else if (trimmedMusic !== undefined) {
     await prisma.$executeRaw`
       UPDATE "Session"
       SET notes = ${trimmedNotes}, "durationMinutes" = ${dur},
-          music = ${trimmedMusic}, "updatedAt" = ${now}
+          music = ${trimmedMusic}, date = ${newDate}, "updatedAt" = ${now}
       WHERE id = ${id}
     `;
   } else {
     await prisma.$executeRaw`
       UPDATE "Session"
-      SET notes = ${trimmedNotes}, "durationMinutes" = ${dur}, "updatedAt" = ${now}
+      SET notes = ${trimmedNotes}, "durationMinutes" = ${dur}, date = ${newDate}, "updatedAt" = ${now}
       WHERE id = ${id}
     `;
   }

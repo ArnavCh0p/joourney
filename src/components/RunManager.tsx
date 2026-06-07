@@ -574,6 +574,7 @@ export default function RunManager({ shelfEntryId, runs: initialRuns, sessions, 
             key={s.id}
             sessionId={s.id}
             date={s.date}
+            rawDate={s.rawDate}
             duration={s.durationMinutes}
             runs={runs}
             currentRunId={s.runId}

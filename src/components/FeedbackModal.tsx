@@ -7,7 +7,7 @@ type FeedbackType = "Bug" | "Idea" | "Other";
 
 export default function FeedbackModal() {
   const [open, setOpen]         = useState(false);
-  const [type, setType]         = useState<FeedbackType>("Idea");
+  const [type, setType]         = useState<FeedbackType | "">("");
   const [message, setMessage]   = useState("");
   const [sending, setSending]   = useState(false);
   const [sent, setSent]         = useState(false);
@@ -26,13 +26,13 @@ export default function FeedbackModal() {
   function close() {
     setOpen(false);
     setMessage("");
-    setType("Idea");
+    setType("");
     setSent(false);
     setError(false);
   }
 
   async function submit() {
-    if (!message.trim() || sending) return;
+    if (!message.trim() || !type || sending) return;
     setSending(true);
     setError(false);
     try {
@@ -87,6 +87,7 @@ export default function FeedbackModal() {
                     onChange={(e) => setType(e.target.value as FeedbackType)}
                     className="w-full rounded-md border border-slate-600 bg-slate-800 px-3 py-2 text-sm text-slate-200 focus:border-slate-400 focus:outline-none"
                   >
+                    <option value="" disabled>Select a type…</option>
                     <option value="Bug">Bug</option>
                     <option value="Idea">Idea</option>
                     <option value="Other">Other</option>
@@ -116,7 +117,7 @@ export default function FeedbackModal() {
                   </button>
                   <button
                     onClick={submit}
-                    disabled={!message.trim() || sending}
+                    disabled={!message.trim() || !type || sending}
                     className="rounded-md bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-40 transition-colors"
                   >
                     {sending ? "Sending…" : "Send"}

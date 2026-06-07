@@ -285,11 +285,26 @@ export default function ShelfPage({ games, initialFilter, initialTag, totalHours
   const activeFilterCount = activeGenres.length + (activeUserTag ? 1 : 0);
   const showCarousels = activeFilter === "All" && !search && groupBy === "none";
 
-  const playingCount   = games.filter((g) => !g.isHidden && (g.status === "Playing" || g.status === "Replaying")).length;
-  const completedCount = games.filter((g) => !g.isHidden && g.status === "Completed").length;
-  const totalHours     = totalHoursProp ?? Math.round(games.filter((g) => !g.isHidden).reduce((sum, g) => sum + g.hours, 0));
+  const playingCount    = games.filter((g) => !g.isHidden && (g.status === "Playing" || g.status === "Replaying")).length;
+  const completedCount  = games.filter((g) => !g.isHidden && g.status === "Completed").length;
+  const totalHours      = totalHoursProp ?? Math.round(games.filter((g) => !g.isHidden).reduce((sum, g) => sum + g.hours, 0));
+  const playingOnly     = games.filter((g) => !g.isHidden && g.status === "Playing").length;
+  const replayingCount  = games.filter((g) => !g.isHidden && g.status === "Replaying").length;
+  const steamGameCount  = games.filter((g) => !g.isHidden && g.steamAppId !== null).length;
+  const manualGameCount = games.filter((g) => !g.isHidden && g.steamAppId === null).length;
 
   // ── Inner components ──────────────────────────────────────────────────────
+
+  function StatPill({ children, tooltip, className }: { children: React.ReactNode; tooltip: string; className: string }) {
+    return (
+      <div className="group relative">
+        <span className={className}>{children}</span>
+        <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block whitespace-nowrap rounded-md border border-slate-700/60 bg-slate-800 px-2.5 py-1 text-[10px] text-slate-300 shadow-lg z-50">
+          {tooltip}
+        </div>
+      </div>
+    );
+  }
 
   function SplitToggle({ isSplit, onToggle }: { isSplit: boolean; onToggle: () => void }) {
     return (
@@ -425,26 +440,38 @@ export default function ShelfPage({ games, initialFilter, initialTag, totalHours
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-md bg-slate-700/60 px-2.5 py-1 text-xs text-slate-300">
+          <StatPill
+            tooltip={manualGameCount > 0 ? `${steamGameCount} from Steam · ${manualGameCount} added manually` : `${steamGameCount} from Steam`}
+            className="inline-flex items-center gap-1.5 rounded-md bg-slate-700/60 px-2.5 py-1 text-xs text-slate-300"
+          >
             <span className="h-1.5 w-1.5 rounded-full bg-slate-400" />
             {games.filter((g) => !g.isHidden).length} games
-          </span>
+          </StatPill>
           {playingCount > 0 && (
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-400 ring-1 ring-emerald-500/20">
+            <StatPill
+              tooltip={replayingCount > 0 ? `${playingOnly} playing · ${replayingCount} replaying` : `${playingOnly} playing`}
+              className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 px-2.5 py-1 text-xs text-emerald-400 ring-1 ring-emerald-500/20"
+            >
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
               {playingCount} playing
-            </span>
+            </StatPill>
           )}
           {completedCount > 0 && (
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-slate-700/60 px-2.5 py-1 text-xs text-slate-400">
+            <StatPill
+              tooltip={`${completedCount} completed`}
+              className="inline-flex items-center gap-1.5 rounded-md bg-slate-700/60 px-2.5 py-1 text-xs text-slate-400"
+            >
               <span className="h-1.5 w-1.5 rounded-full bg-sky-500" />
               {completedCount} completed
-            </span>
+            </StatPill>
           )}
           {totalHours > 0 && (
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-slate-700/60 px-2.5 py-1 text-xs text-slate-400">
+            <StatPill
+              tooltip="Total playtime across all tracked games"
+              className="inline-flex items-center gap-1.5 rounded-md bg-slate-700/60 px-2.5 py-1 text-xs text-slate-400"
+            >
               {totalHours.toLocaleString()}h tracked
-            </span>
+            </StatPill>
           )}
         </div>
 
