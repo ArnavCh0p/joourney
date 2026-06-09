@@ -1,0 +1,20 @@
+All four tasks are done. Here's what was found and committed:
+
+**Audit (Task 1)** — The end-to-end flow was already correct:
+- `/api/auth/steam-login` redirects to Steam OpenID, handles the callback, extracts SteamID, routes to `/steam-callback`
+- Cancels/failures redirect to `/signin/error`
+- `auth.ts` CredentialsProvider fetches the Steam profile, upserts the user, and returns the session
+- TypeScript clean throughout
+
+**SignInHero polish (Task 2)** — Committed `7230060`:
+- Full-bleed hero with star field (deterministic, no hydration mismatch), film-grain texture, emerald atmospheric vignette
+- Stacked cover art collage on desktop, fading into the background
+- Floating "recent entry" journal card mockup
+- Info strip showing status breakdown, library grid, and organize features
+- Added explicit `bg-[#0f172a]` so the gradient fades stay consistent
+
+**Steam callback (Task 3)** — Already committed in `642023e`: app wordmark + spinner + "Connecting to Steam…"
+
+**Error page (Task 4)** — Already committed in `642023e`: friendly error message with "Try again" back to home, plus privacy note
+
+**Bonus** — Committed `6ad0ba1`: `BackButton` component uses `router.back()` on the game detail page so users return to wherever they came from rather than always going to the library.
