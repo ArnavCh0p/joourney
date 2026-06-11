@@ -10,6 +10,12 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: #0f172a;
+  /* Starry-night glow — violet ellipse at the top, blue at the bottom right.
+     Fixed so it stays put while the page scrolls; sits behind the StarField stars. */
+  background-image:
+    radial-gradient(ellipse at 50% 0%, oklch(0.28 0.08 270 / 0.45), transparent 60%),
+    radial-gradient(ellipse at 80% 80%, oklch(0.3 0.12 220 / 0.25), transparent 60%);
+  background-attachment: fixed;
 }
 
 /* Remove the old floating panel — app is now full-bleed */
